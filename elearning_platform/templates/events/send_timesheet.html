@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Send Timesheet - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .formset-row {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+        position: relative;
+    }
+    
+    .delete-row {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Send Timesheet</h2>
+                <p class="text-center text-muted mb-0">To: {{ student.get_full_name|default:student.username }}</p>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h5>Message</h5>
+                    <p class="text-muted">Add a message to your student about the timesheet.</p>
+                    {{ form|crispy }}
+                    
+                    <h5 class="mt-4">Available Time Slots</h5>
+                    <p class="text-muted">Add multiple time options for your student to choose from.</p>
+                    
+                    {{ formset.management_form }}
+                    
+                    <div id="formset-container">
+                        {% for time_form in formset %}
+                            <div class="formset-row">
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-row">Remove</button>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        {{ time_form.day_of_week|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ time_form.start_time|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ time_form.end_time|as_crispy_field }}
+                                    </div>
+                                </div>
+                                {% if time_form.DELETE %}
+                                    <div class="d-none">
+                                        {{ time_form.DELETE }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <button type="button" id="add-time-option" class="btn btn-outline-primary">Add Another Time Slot</button>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Send Timesheet</button>
+                        <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('formset-container');
+        const addButton = document.getElementById('add-time-option');
+        
+        // Get current form count
+        let formCount = {{ formset.total_form_count }};
+        const maxForms = {{ formset.max_num }};
+        
+        // Add new form
+        addButton.addEventListener('click', function() {
+            if (formCount < maxForms) {
+                // Clone the first form
+                const firstForm = formsetContainer.querySelector('.formset-row');
+                const newForm = firstForm.cloneNode(true);
+                
+                // Update form index
+                const formRegex = RegExp(`form-\\d+-`, 'g');
+                newForm.innerHTML = newForm.innerHTML.replace(formRegex, `form-${formCount}-`);
+                
+                // Clear form values
+                const inputs = newForm.querySelectorAll('input[type="text"], select, input[type="time"]');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                
+                // Append new form to container
+                formsetContainer.appendChild(newForm);
+                
+                // Update form count
+                const totalForms = document.querySelector('[name="form-TOTAL_FORMS"]');
+                formCount++;
+                totalForms.value = formCount;
+            }
+        });
+        
+        // Handle row deletion
+        formsetContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-row')) {
+                const row = e.target.closest('.formset-row');
+                
+                // Make sure we keep at least one row
+                if (formsetContainer.querySelectorAll('.formset-row').length > 1) {
+                    // If this is an existing form, mark it for deletion
+                    const deleteInput = row.querySelector('input[name*="-DELETE"]');
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        row.style.display = 'none';
+                    } else {
+                        // If it's a new form, remove it entirely
+                        row.remove();
+                        
+                        // Update form count
+                        const totalForms = document.querySelector('[name="form-TOTAL_FORMS"]');
+                        formCount--;
+                        totalForms.value = formCount;
+                    }
+                } else {
+                    alert('You must have at least one time option.');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

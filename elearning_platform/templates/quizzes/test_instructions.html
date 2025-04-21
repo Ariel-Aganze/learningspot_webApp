@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Placement Test Instructions - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Placement Test Instructions</h2>
+                <p class="text-center text-muted mb-0">{{ course.title }}</p>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">Read Before Starting</h5>
+                    <p>This placement test will determine your proficiency level in {{ course.title }}. Based on your performance, you will be classified as Beginner, Intermediate, or Advanced.</p>
+                </div>
+                
+                <h5>Important Information:</h5>
+                <ul class="list-group mb-4">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Questions
+                        <span class="badge bg-primary rounded-pill">{{ quiz.quiz_questions.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Time Limit
+                        <span class="badge bg-primary rounded-pill">{{ quiz.time_limit }} minutes</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Passing Score
+                        <span class="badge bg-primary rounded-pill">{{ quiz.passing_score }}%</span>
+                    </li>
+                </ul>
+                
+                <h5>Instructions:</h5>
+                <ol>
+                    <li>Once you start the test, the timer will begin and cannot be paused.</li>
+                    <li>Each question has a specific time limit. If you don't answer within the time limit, the question will be marked as incorrect.</li>
+                    <li>You can only take this test once.</li>
+                    <li>Make sure you have a stable internet connection before starting.</li>
+                    <li>Answer all questions to the best of your ability.</li>
+                </ol>
+                
+                <div class="text-center mt-4">
+                    <p>Are you ready to begin the placement test?</p>
+                    <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-primary btn-lg">Start Test Now</a>
+                    <a href="{% url 'student_dashboard' %}" class="btn btn-outline-secondary">Take it Later</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

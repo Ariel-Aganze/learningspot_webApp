@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Assign Teacher - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Assign Teacher</h2>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">Assigning teacher for student: <strong>{{ student.get_full_name|default:student.username }}</strong></p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Assign Teacher</button>
+                        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

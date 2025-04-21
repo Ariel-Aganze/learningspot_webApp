@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Taking Test - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .quiz-timer {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .question-timer {
+        font-size: 1.2rem;
+    }
+    
+    .timer-warning {
+        color: #dc3545;
+    }
+    
+    .progress {
+        height: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ quiz.title }}</h4>
+                <div class="quiz-timer" id="quizTimer" data-remaining="{{ remaining_time }}">
+                    Time: <span id="minutes">00</span>:<span id="seconds">00</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Progress bar -->
+                <div class="progress mb-4">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress }}%" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                
+                <!-- Question -->
+                <div class="mb-4">
+                    <h5>Question:</h5>
+                    <p class="lead">{{ question.question.text }}</p>
+                </div>
+                
+                <!-- Question timer -->
+                <div class="text-center mb-3">
+                    <div class="question-timer" id="questionTimer" data-limit="{{ question_time_limit }}">
+                        Time left for this question: <span id="questionSeconds">{{ question_time_limit }}</span>s
+                    </div>
+                </div>
+                
+                <!-- Answer form -->
+                <form method="post" id="questionForm">
+                    {% csrf_token %}
+                    
+                    {{ form.time_taken }}
+                    
+                    <div class="mb-3">
+                        {% for radio in form.selected_choice %}
+                            <div class="form-check">
+                                {{ radio.tag }}
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                    {{ radio.choice_label }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Submit Answer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Quiz timer
+        const quizTimerElement = document.getElementById('quizTimer');
+        const minutesElement = document.getElementById('minutes');
+        const secondsElement = document.getElementById('seconds');
+        let remainingTime = parseInt(quizTimerElement.dataset.remaining);
+        
+        // Question timer
+        const questionTimerElement = document.getElementById('questionTimer');
+        const questionSecondsElement = document.getElementById('questionSeconds');
+        let questionTimeLimit = parseInt(questionTimerElement.dataset.limit);
+        let questionTimeTaken = 0;
+        
+        // Time taken field
+        const timeField = document.querySelector('input[name="time_taken"]');
+        
+        // Update quiz timer
+        function updateQuizTimer() {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+            
+            minutesElement.textContent = minutes.toString().padStart(2, '0');
+            secondsElement.textContent = seconds.toString().padStart(2, '0');
+            
+            // Add warning class when time is running low (less than 5 minutes)
+            if (remainingTime < 300) {
+                quizTimerElement.classList.add('timer-warning');
+            }
+            
+            // If time is up, submit the form
+            if (remainingTime <= 0) {
+                window.location.reload();
+            }
+            
+            remainingTime--;
+        }
+        
+        // Update question timer
+        function updateQuestionTimer() {
+            questionSecondsElement.textContent = questionTimeLimit;
+            
+            // Add warning class when time is running low (less than 10 seconds)
+            if (questionTimeLimit < 10) {
+                questionTimerElement.classList.add('timer-warning');
+            }
+            
+            // If question time is up, submit the form
+            if (questionTimeLimit <= 0) {
+                document.getElementById('questionForm').submit();
+            }
+            
+            questionTimeLimit--;
+            questionTimeTaken++;
+            timeField.value = questionTimeTaken;
+        }
+        
+        // Start timers
+        const quizTimerInterval = setInterval(updateQuizTimer, 1000);
+        const questionTimerInterval = setInterval(updateQuestionTimer, 1000);
+        
+        // Initial update
+        updateQuizTimer();
+        updateQuestionTimer();
+    });
+</script>
+{% endblock %}

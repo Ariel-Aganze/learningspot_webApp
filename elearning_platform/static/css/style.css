@@ -1,0 +1,183 @@
+/* Main color variables */
+:root {
+    --primary-color: #47e205;
+    --secondary-color: #2e206d;
+    --light-gray: #f8f9fa;
+    --dark-gray: #6c757d;
+    --white: #ffffff;
+}
+
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--secondary-color);
+}
+
+/* Button Styles */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #3ac004;
+    border-color: #3ac004;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: #251a58;
+    border-color: #251a58;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Card Styles */
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    background-color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.card-footer {
+    border-radius: 0 0 10px 10px !important;
+    background-color: white;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Form Styles */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(71, 226, 5, 0.25);
+}
+
+/* Alert Styles */
+.alert {
+    border-radius: 10px;
+}
+
+/* Badge Styles */
+.badge {
+    font-weight: 500;
+}
+
+/* Navigation */
+.navbar {
+    padding: 1rem 0;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.navbar .dropdown-menu {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 10px;
+}
+
+/* Progress Bars */
+.progress {
+    height: 10px;
+    border-radius: 5px;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+}
+
+/* Dashboard Cards */
+.stats-card {
+    border-left: 5px solid var(--primary-color);
+}
+
+.stats-card .card-title {
+    color: var(--dark-gray);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.stats-card .card-value {
+    color: #333;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Course Cards */
+.course-card {
+    height: 100%;
+}
+
+.course-card .card-footer {
+    background-color: transparent;
+}
+
+/* Quiz Styles */
+.quiz-timer {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.timer-warning {
+    color: #dc3545 !important;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Footer */
+.footer {
+    background-color: var(--light-gray);
+    padding: 1.5rem 0;
+    margin-top: 3rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1.5rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+}

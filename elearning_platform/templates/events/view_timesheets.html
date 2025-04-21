@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}My Timesheets - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>My Timesheets</h1>
+        <p class="lead">Review and respond to timesheets sent by your teachers</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Timesheets</h5>
+            </div>
+            <div class="card-body">
+                {% if timesheets %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>From</th>
+                                    <th>Date</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for timesheet in timesheets %}
+                                    <tr>
+                                        <td>{{ timesheet.teacher.get_full_name|default:timesheet.teacher.username }}</td>
+                                        <td>{{ timesheet.created_at|date }}</td>
+                                        <td>
+                                            {% if timesheet.message %}
+                                                {{ timesheet.message|truncatechars:50 }}
+                                            {% else %}
+                                                <span class="text-muted">No message</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if timesheet.status == 'pending' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif timesheet.status == 'confirmed' %}
+                                                <span class="badge bg-success">Confirmed</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if timesheet.status == 'pending' %}
+                                                <a href="{% url 'select_time_options' timesheet.id %}" class="btn btn-sm btn-primary">Select Times</a>
+                                            {% elif timesheet.status == 'confirmed' %}
+                                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#timesheet-{{ timesheet.id }}">View Selected</button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">You haven't received any timesheets yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for viewing confirmed timesheets -->
+{% for timesheet in timesheets %}
+    {% if timesheet.status == 'confirmed' %}
+        <div class="modal fade" id="timesheet-{{ timesheet.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Selected Time Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>From:</strong> {{ timesheet.teacher.get_full_name|default:timesheet.teacher.username }}</p>
+                        
+                        {% if timesheet.message %}
+                            <p><strong>Message:</strong> {{ timesheet.message }}</p>
+                        {% endif %}
+                        
+                        <h6 class="mt-3">Selected Time Options:</h6>
+                        <ul class="list-group">
+                            {% for option in timesheet.time_options.all %}
+                                {% if option.is_selected %}
+                                    <li class="list-group-item list-group-item-success">
+                                        <strong>{{ option.day_of_week }}:</strong> {{ option.start_time|time:"g:i A" }} - {{ option.end_time|time:"g:i A" }}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+{% endblock %}

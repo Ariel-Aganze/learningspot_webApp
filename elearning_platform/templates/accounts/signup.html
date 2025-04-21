@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Sign Up - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Create Account</h2>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {{ user_form|crispy }}
+                    
+                    <div id="organization_fields" style="display: none;">
+                        <hr>
+                        <h4>Organization Information</h4>
+                        {{ org_form|crispy }}
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Sign Up</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const orgCheckbox = document.getElementById('is_organization');
+        const orgFields = document.getElementById('organization_fields');
+        
+        // Initial state
+        if (orgCheckbox.checked) {
+            orgFields.style.display = 'block';
+        }
+        
+        // Toggle organization fields
+        orgCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                orgFields.style.display = 'block';
+            } else {
+                orgFields.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

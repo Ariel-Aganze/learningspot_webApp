@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Pending - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow">
+            <div class="card-body py-5">
+                <div class="mb-4">
+                    <i class="bi bi-clock-history text-warning" style="font-size: 4rem;"></i>
+                </div>
+                <h2 class="mb-3">Payment Processing</h2>
+                <p class="lead">Thank you for submitting your payment for {{ course.title }}.</p>
+                <p>Your payment proof has been submitted and is currently being reviewed by our administrators. This usually takes 1-2 business days.</p>
+                <p>Once your payment is approved, you will be able to take the placement test.</p>
+                
+                <div class="mt-4">
+                    <a href="{% url 'student_dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

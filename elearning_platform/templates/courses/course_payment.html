@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Payment - {{ course.title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Payment for Placement Test</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">Payment Instructions</h5>
+                    <p>To proceed with the placement test for <strong>{{ course.title }}</strong>, please complete the payment of <strong>${{ course.placement_test_price }}</strong> using one of the methods below:</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Bank Transfer Details:</strong><br>
+                        Bank: Example Bank<br>
+                        Account Name: E-Learning Platform<br>
+                        Account Number: 1234567890<br>
+                        Reference: Your full name + Course title
+                    </p>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <h5 class="mb-3">Upload Payment Proof</h5>
+                    {{ form|crispy }}
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Submit Payment Proof</button>
+                        <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Results - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Placement Test Results</h2>
+                <p class="text-center text-muted mb-0">{{ attempt.quiz.title }}</p>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    {% if attempt.result == 'beginner' %}
+                        <div class="display-1 text-primary mb-2">Beginner</div>
+                        <p class="lead">You've been placed at the Beginner level.</p>
+                    {% elif attempt.result == 'intermediate' %}
+                        <div class="display-1 text-primary mb-2">Intermediate</div>
+                        <p class="lead">You've been placed at the Intermediate level.</p>
+                    {% elif attempt.result == 'advanced' %}
+                        <div class="display-1 text-primary mb-2">Advanced</div>
+                        <p class="lead">You've been placed at the Advanced level.</p>
+                    {% else %}
+                        <div class="display-1 text-danger mb-2">Failed</div>
+                        <p class="lead">You did not meet the minimum passing score.</p>
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Your Score</h5>
+                                <p class="card-text display-6">{{ attempt.score }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Passing Score</h5>
+                                <p class="card-text display-6">{{ attempt.quiz.passing_score }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Status</h5>
+                                <p class="card-text display-6">
+                                    {% if attempt.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Timed Out</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <p>Your test results and level have been saved. An administrator will assign you to a teacher based on your proficiency level.</p>
+                    <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Answers Review -->
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">Answers Review</h4>
+            </div>
+            <div class="card-body">
+                {% for answer in answers %}
+                    <div class="mb-4 p-3 {% if answer.is_correct %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %} rounded">
+                        <p class="mb-2"><strong>Question {{ forloop.counter }}:</strong> {{ answer.question.question.text }}</p>
+                        <p class="mb-2"><strong>Your Answer:</strong> {{ answer.selected_choice.text }}</p>
+                        <p class="mb-0">
+                            {% if answer.is_correct %}
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Correct</span>
+                            {% else %}
+                                <span class="text-danger"><i class="bi bi-x-circle"></i> Incorrect</span>
+                            {% endif %}
+                            <span class="ms-3 text-muted">Time taken: {{ answer.time_taken }} seconds</span>
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

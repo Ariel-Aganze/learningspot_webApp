@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Teacher Dashboard</h1>
+        <p class="lead">Welcome back, {{ request.user.first_name|default:request.user.username }}!</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Teacher Profile -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">My Profile</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ request.user.username }}</p>
+                <p><strong>Email:</strong> {{ request.user.email }}</p>
+                <p><strong>Name:</strong> {{ request.user.get_full_name|default:"Not provided" }}</p>
+                <p><strong>Phone:</strong> {{ request.user.phone_number|default:"Not provided" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assigned Students -->
+    <div class="col-md-8 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">My Students</h5>
+                <a href="{% url 'create_event' %}" class="btn btn-sm btn-primary">Create New Event</a>
+            </div>
+            <div class="card-body">
+                {% if assigned_students %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Email</th>
+                                    <th>Level</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student_profile in assigned_students %}
+                                    <tr>
+                                        <td>{{ student_profile.user.get_full_name|default:student_profile.user.username }}</td>
+                                        <td>{{ student_profile.user.email }}</td>
+                                        <td>
+                                            {% if student_profile.proficiency_level %}
+                                                <span class="badge bg-primary">{{ student_profile.proficiency_level|title }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Not determined</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if student_profile.user.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'send_timesheet' student_profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>You don't have any assigned students yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Upcoming Classes -->
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Upcoming Classes</h5>
+            </div>
+            <div class="card-body">
+                <div id="events">
+                    <!-- This will be populated when we implement the events app -->
+                    <div class="text-center py-3">
+                        <p>No upcoming classes at the moment.</p>
+                        <a href="{% url 'create_event' %}" class="btn btn-primary">Schedule New Class</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

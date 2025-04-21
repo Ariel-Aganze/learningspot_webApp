@@ -1,0 +1,208 @@
+<!-- templates/courses/student_course_dashboard.html -->
+{% extends 'base.html' %}
+{% load course_tags %}
+
+{% block title %}{{ course.title }} Dashboard - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ course.title }}</h1>
+        <p class="lead">{{ course.description|truncatewords:20 }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'student_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Course Progress Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Course Progress</h5>
+                {% if progress.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if progress.status == 'completed' %}
+                    <div class="alert alert-success">
+                        <h4 class="alert-heading">Congratulations!</h4>
+                        <p>You have successfully completed this course on {{ progress.completed_at|date:"F j, Y" }}!</p>
+                    </div>
+                {% endif %}
+                
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar {% if progress.status == 'completed' %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ progress.progress_percentage }}%;" 
+                         aria-valuenow="{{ progress.progress_percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                         {{ progress.progress_percentage }}%
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ materials.count }}</h5>
+                                <p class="card-text text-muted">Learning Materials</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ assignments.count }}</h5>
+                                <p class="card-text text-muted">Assignments</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ quizzes.count }}</h5>
+                                <p class="card-text text-muted">Quizzes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Course Content Tabs -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <ul class="nav nav-tabs card-header-tabs" id="courseContentTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">Assignments</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes" type="button" role="tab">Quizzes</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="courseContentTabsContent">
+                    <!-- Materials Tab -->
+                    <div class="tab-pane fade show active" id="materials" role="tabpanel">
+                        {% if materials %}
+                            <div class="list-group">
+                                {% for material in materials %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">{{ material.title }}</h5>
+                                            <small class="text-muted">{{ material.material_type|title }}</small>
+                                        </div>
+                                        {% if material.description %}
+                                            <p class="mb-1">{{ material.description }}</p>
+                                        {% endif %}
+                                        <div class="mt-2">
+                                            {% if material.material_type == 'document' or material.material_type == 'image' %}
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary" target="_blank">View</a>
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-outline-secondary" download>Download</a>
+                                            {% elif material.material_type == 'video' %}
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary" target="_blank">Watch Video</a>
+                                            {% elif material.material_type == 'link' %}
+                                                <a href="{{ material.external_url }}" class="btn btn-sm btn-primary" target="_blank">Open Link</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No learning materials available for this course yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Assignments Tab -->
+                    <div class="tab-pane fade" id="assignments" role="tabpanel">
+                        {% if assignments %}
+                            <div class="list-group">
+                                {% for assignment in assignments %}
+    {% with submission=submissions_dict|get:assignment.id %}
+    <div class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ assignment.title }}</h5>
+            {% if submission %}
+                {% if submission.status == 'pending' %}
+                    <span class="badge bg-warning">Pending</span>
+                {% elif submission.status == 'submitted' %}
+                    <span class="badge bg-info">Submitted</span>
+                {% else %}
+                    <span class="badge bg-success">Graded: {{ submission.grade }}/{{ assignment.points }}</span>
+                {% endif %}
+            {% endif %}
+        </div>
+        <!-- rest of the code -->
+    </div>
+    {% endwith %}
+{% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No assignments available for this course yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Quizzes Tab -->
+                    <div class="tab-pane fade" id="quizzes" role="tabpanel">
+                        {% if quizzes %}
+                            <div class="list-group">
+                                {% for quiz in quizzes %}
+                                    {% with attempt=attempts_dict|get:quiz.id %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">{{ quiz.title }}</h5>
+                                            {% if attempt %}
+                                                {% if attempt.status == 'in_progress' %}
+                                                    <span class="badge bg-warning">In Progress</span>
+                                                {% elif attempt.status == 'completed' %}
+                                                    <span class="badge bg-success">Completed: {{ attempt.score }}%</span>
+                                                {% elif attempt.status == 'timed_out' %}
+                                                    <span class="badge bg-danger">Timed Out: {{ attempt.score }}%</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                        {% if quiz.description %}
+                                            <p class="mb-1">{{ quiz.description }}</p>
+                                        {% endif %}
+                                        <small class="text-muted">Time Limit: {{ quiz.time_limit }} minutes</small>
+                                        <div class="mt-2">
+                                            {% if not attempt %}
+                                                <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-primary">Start Quiz</a>
+                                            {% elif attempt.status == 'in_progress' %}
+                                                <a href="{% url 'take_quiz' attempt.id %}" class="btn btn-sm btn-warning">Continue Quiz</a>
+                                            {% else %}
+                                                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endwith %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No quizzes available for this course yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

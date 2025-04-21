@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Quizzes - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Quizzes</h1>
+        <p class="lead">Manage placement tests and quizzes</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'quiz_create' %}" class="btn btn-primary">Add New Quiz</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Filter Quizzes</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="course" class="form-label">Course</label>
+                        <select class="form-select" id="course" name="course">
+                            <option value="">All Courses</option>
+                            {% for course in courses %}
+                                <option value="{{ course.id }}" {% if request.GET.course == course.id|stringformat:"i" %}selected{% endif %}>{{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="active" class="form-label">Status</label>
+                        <select class="form-select" id="active" name="active">
+                            <option value="">All</option>
+                            <option value="true" {% if request.GET.active == 'true' %}selected{% endif %}>Active</option>
+                            <option value="false" {% if request.GET.active == 'false' %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="search" value="{{ request.GET.search|default:'' }}">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Quiz List</h5>
+            </div>
+            <div class="card-body">
+                {% if quizzes %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Time Limit</th>
+                                    <th>Passing Score</th>
+                                    <th>Status</th>
+                                    <th>Questions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for quiz in quizzes %}
+                                    <tr>
+                                        <td>{{ quiz.title }}</td>
+                                        <td>{{ quiz.course.title }}</td>
+                                        <td>{{ quiz.time_limit }} minutes</td>
+                                        <td>{{ quiz.passing_score }}%</td>
+                                        <td>
+                                            {% if quiz.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ quiz.quiz_questions.count }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'quiz_update' quiz.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
+                                                <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-info">View Results</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No quizzes found. {% if request.GET %}Try different filter options or {% endif %}<a href="{% url 'quiz_create' %}" class="alert-link">create a new quiz</a>.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
