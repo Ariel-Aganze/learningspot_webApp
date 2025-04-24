@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Manage Quiz Questions - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-item {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .available-question {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .available-question:hover {
+        background-color: #f0f0f0;
+    }
+    
+    .difficulty-badge-beginner {
+        background-color: #28a745;
+    }
+    
+    .difficulty-badge-intermediate {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .difficulty-badge-advanced {
+        background-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Manage Questions: {{ quiz.title }}</h1>
+        <p class="lead">Add, remove, and reorder questions for this quiz</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">Back to Quizzes</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Quiz Questions</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {{ formset.management_form }}
+                    
+                    {% if formset.forms %}
+                        <div id="quiz-questions">
+                            {% for form in formset %}
+                                <div class="question-item">
+                                    {{ form.id }}
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            {{ form.question|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-3">
+                                            {{ form.order|as_crispy_field }}
+                                        </div>
+                                        <div class="col-md-1 d-flex align-items-center">
+                                            {% if form.instance.pk and not form.DELETE.value %}
+                                                <div class="form-check">
+                                                    {{ form.DELETE }}
+                                                    <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                                                        <span class="text-danger">Remove</span>
+                                                    </label>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">No questions added to this quiz yet. Select questions from the available list to add them.</p>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Available Questions</h5>
+            </div>
+            <div class="card-body">
+                {% if available_questions %}
+                    <div class="mb-3">
+                        <input type="text" id="question-search" class="form-control" placeholder="Search questions...">
+                    </div>
+                    
+                    <div id="available-questions-list">
+                        {% for question in available_questions %}
+                            <div class="available-question" data-question-id="{{ question.id }}" data-question-text="{{ question.text }}">
+                                <p class="mb-1">{{ question.text|truncatechars:80 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge difficulty-badge-{{ question.difficulty }}">{{ question.difficulty|title }}</span>
+                                    <small class="text-muted">{{ question.choices.count }} choices</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <p class="mb-0">No available questions for this course. <a href="{% url 'question_create' %}">Create new questions</a> first.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Question search functionality
+        const searchInput = document.getElementById('question-search');
+        const questionItems = document.querySelectorAll('.available-question');
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            questionItems.forEach(item => {
+                const questionText = item.getAttribute('data-question-text').toLowerCase();
+                
+                if (questionText.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+        
+        // Add question to quiz
+        questionItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const questionId = this.getAttribute('data-question-id');
+                const questionText = this.getAttribute('data-question-text');
+                
+                // Check if question is already in the quiz
+                const existingQuestions = document.querySelectorAll('#quiz-questions select');
+                let alreadyAdded = false;
+                
+                existingQuestions.forEach(select => {
+                    const options = select.querySelectorAll('option');
+                    options.forEach(option => {
+                        if (option.value === questionId && option.selected) {
+                            alreadyAdded = true;
+                        }
+                    });
+                });
+                
+                if (alreadyAdded) {
+                    alert('This question is already added to the quiz.');
+                    return;
+                }
+                
+                // Add question to the quiz
+                const formIndex = document.querySelectorAll('.question-item').length;
+                const managementForm = document.querySelector('[name="form-TOTAL_FORMS"]');
+                
+                if (managementForm) {
+                    // Increment the total forms count
+                    const totalForms = parseInt(managementForm.value);
+                    managementForm.value = totalForms + 1;
+                    
+                    // Create new form for the question
+                    const quizQuestionsDiv = document.getElementById('quiz-questions');
+                    
+                    // If no questions yet, remove the info alert
+                    if (totalForms === 0) {
+                        const alertDiv = document.querySelector('.alert-info');
+                        if (alertDiv) {
+                            alertDiv.remove();
+                        }
+                    }
+                    
+                    // Create the HTML for the new question form
+                    const newFormHtml = `
+                        <div class="question-item">
+                            <input type="hidden" name="form-${totalForms}-id" id="id_form-${totalForms}-id">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="id_form-${totalForms}-question" class="form-label">Question</label>
+                                        <select name="form-${totalForms}-question" class="form-select" id="id_form-${totalForms}-question" required>
+                                            <option value="${questionId}" selected>${questionText}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="id_form-${totalForms}-order" class="form-label">Order</label>
+                                        <input type="number" name="form-${totalForms}-order" value="${totalForms + 1}" class="form-control" id="id_form-${totalForms}-order" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-center">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append the new form
+                    quizQuestionsDiv.insertAdjacentHTML('beforeend', newFormHtml);
+                    
+                    // Add save button if it doesn't exist
+                    if (!document.querySelector('button[type="submit"]')) {
+                        const saveButton = document.createElement('div');
+                        saveButton.className = 'text-center mt-4';
+                        saveButton.innerHTML = '<button type="submit" class="btn btn-primary">Save Changes</button>';
+                        quizQuestionsDiv.parentNode.appendChild(saveButton);
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -20,6 +20,77 @@
     .progress {
         height: 10px;
     }
+    
+    .question-image {
+        max-width: 100%;
+        max-height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .audio-player {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .choice-image {
+        max-width: 150px;
+        max-height: 150px;
+        margin-bottom: 10px;
+    }
+    
+    .star-rating {
+        font-size: 24px;
+    }
+    
+    .star-rating input[type="radio"] {
+        display: none;
+    }
+    
+    .star-rating label {
+        color: #ddd;
+        cursor: pointer;
+    }
+    
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input[type="radio"]:checked ~ label {
+        color: #ffcc00;
+    }
+    
+    .matching-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .matching-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .matching-left {
+        width: 45%;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .matching-right {
+        width: 45%;
+    }
+    
+    .recording-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .recording-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -43,8 +114,25 @@
                 <div class="mb-4">
                     <h5>Question:</h5>
                     <p class="lead">{{ question.question.text }}</p>
+                    
+                    <!-- Question media -->
+                    {% if question.question.image %}
+                        <img src="{{ question.question.image.url }}" alt="Question Image" class="question-image">
+                    {% endif %}
+                    
+                    {% if question.question.audio %}
+                        <audio controls class="audio-player">
+                            <source src="{{ question.question.audio.url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    {% endif %}
                 </div>
-                
+                {% if not has_valid_choices and question.question.is_multiple_choice_type %}
+                    <div class="alert alert-warning">
+                        <p><strong>No answer choices available for this question.</strong> Please notify your instructor.</p>
+                        <p>You may continue to the next question.</p>
+                    </div>
+                {% endif %}
                 <!-- Question timer -->
                 <div class="text-center mb-3">
                     <div class="question-timer" id="questionTimer" data-limit="{{ question_time_limit }}">
@@ -53,21 +141,199 @@
                 </div>
                 
                 <!-- Answer form -->
-                <form method="post" id="questionForm">
+                <form method="post" id="questionForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     
                     {{ form.time_taken }}
                     
-                    <div class="mb-3">
-                        {% for radio in form.selected_choice %}
-                            <div class="form-check">
-                                {{ radio.tag }}
-                                <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                    {{ radio.choice_label }}
-                                </label>
+                    <!-- Different question types -->
+                    {% if question_type == 'multiple_choice' or question_type == 'true_false' %}
+                        <div class="mb-3">
+                            {% for radio in form.selected_choice %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif question_type == 'multi_select' %}
+                        <div class="mb-3">
+                            {% for checkbox in form.selected_choices %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif question_type == 'dropdown' %}
+                        <div class="mb-3">
+                            <select name="selected_choice" class="form-select">
+                                <option value="">Select an answer</option>
+                                {% for choice in question.question.choices.all %}
+                                    <option value="{{ choice.id }}">{{ choice.text }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    
+                    {% elif question_type == 'star_rating' %}
+                        <div class="mb-3 text-center">
+                            <div class="star-rating">
+                                {% for choice in question.question.choices.all %}
+                                    <input type="radio" id="star{{ choice.id }}" name="selected_choice" value="{{ choice.id }}" />
+                                    <label for="star{{ choice.id }}">★</label>
+                                {% endfor %}
                             </div>
-                        {% endfor %}
-                    </div>
+                        </div>
+                    
+                    {% elif question_type == 'likert_scale' %}
+                        <div class="mb-3">
+                            <div class="row text-center">
+                                {% for choice in question.question.choices.all %}
+                                    <div class="col">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="selected_choice" id="likert{{ choice.id }}" value="{{ choice.id }}">
+                                            <label class="form-check-label" for="likert{{ choice.id }}">
+                                                {{ choice.text }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    
+                    {% elif question_type == 'matrix' %}
+                        <div class="mb-3">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        {% for choice in question.question.choices.all %}
+                                            {% if forloop.counter0 < 5 %}
+                                                <th>{{ choice.text }}</th>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for choice in question.question.choices.all %}
+                                        {% if forloop.counter0 >= 5 %}
+                                            <tr>
+                                                <td>{{ choice.text }}</td>
+                                                {% for option in question.question.choices.all %}
+                                                    {% if forloop.counter0 < 5 %}
+                                                        <td>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="radio" 
+                                                                    name="matrix_{{ choice.id }}" 
+                                                                    value="{{ option.id }}_{{ choice.id }}">
+                                                            </div>
+                                                        </td>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    
+                    {% elif question_type == 'image_choice' %}
+                        <div class="mb-3">
+                            <div class="row">
+                                {% for choice in question.question.choices.all %}
+                                    <div class="col-md-3 text-center">
+                                        {% if choice.image %}
+                                            <img src="{{ choice.image.url }}" alt="{{ choice.text }}" class="choice-image">
+                                        {% endif %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="selected_choice" id="image{{ choice.id }}" value="{{ choice.id }}">
+                                            <label class="form-check-label" for="image{{ choice.id }}">
+                                                {{ choice.text }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    
+                    {% elif question_type == 'image_rating' %}
+                        <div class="mb-3">
+                            {% if question.question.image %}
+                                <div class="text-center mb-3">
+                                    <img src="{{ question.question.image.url }}" alt="Rate this image" class="question-image">
+                                </div>
+                            {% endif %}
+                            <div class="text-center">
+                                {% for choice in question.question.choices.all %}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="selected_choice" id="rating{{ choice.id }}" value="{{ choice.id }}">
+                                        <label class="form-check-label" for="rating{{ choice.id }}">
+                                            {{ choice.text }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    
+                    {% elif question_type == 'matching' %}
+                        <div class="mb-3">
+                            <div class="matching-container">
+                                {% for left_choice in question.question.choices.all %}
+                                    {% if forloop.counter0 < question.question.choices.count|divisibleby:2 %}
+                                        <div class="matching-item">
+                                            <div class="matching-left">{{ left_choice.text }}</div>
+                                            <div class="matching-right">
+                                                <select name="match_{{ left_choice.id }}" class="form-select">
+                                                    <option value="">Select match</option>
+                                                    {% for right_choice in question.question.choices.all %}
+                                                        {% if right_choice.match_text %}
+                                                            <option value="{{ right_choice.id }}">{{ right_choice.match_text }}</option>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    
+                    {% elif question_type == 'short_answer' or question_type == 'long_answer' %}
+                        <div class="mb-3">
+                            {% if question_type == 'short_answer' %}
+                                <input type="text" name="text_answer" class="form-control" placeholder="Your answer">
+                            {% else %}
+                                <textarea name="text_answer" class="form-control" rows="5" placeholder="Your answer"></textarea>
+                            {% endif %}
+                        </div>
+                    
+                    {% elif question_type == 'file_upload' %}
+                        <div class="mb-3">
+                            <input type="file" name="file_answer" class="form-control">
+                            <div class="form-text">Upload your file (document, image, etc.)</div>
+                        </div>
+                    
+                    {% elif question_type == 'voice_record' %}
+                        <div class="mb-3">
+                            <div class="recording-container">
+                                <div id="recorder-status">Click the Record button to start recording</div>
+                                <audio id="audio-playback" controls style="display:none;"></audio>
+                                
+                                <div class="recording-controls">
+                                    <button type="button" id="startRecording" class="btn btn-danger">Record</button>
+                                    <button type="button" id="stopRecording" class="btn btn-secondary" disabled>Stop</button>
+                                </div>
+                                
+                                <input type="hidden" id="recorded-audio" name="file_answer">
+                            </div>
+                        </div>
+                    {% endif %}
                     
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary">Submit Answer</button>
@@ -144,6 +410,67 @@
         // Initial update
         updateQuizTimer();
         updateQuestionTimer();
+        
+        // Voice recording functionality
+        const questionType = "{{ question_type }}";
+        
+        if (questionType === 'voice_record') {
+            const startButton = document.getElementById('startRecording');
+            const stopButton = document.getElementById('stopRecording');
+            const statusElement = document.getElementById('recorder-status');
+            const audioPlayback = document.getElementById('audio-playback');
+            const audioInputField = document.getElementById('recorded-audio');
+            
+            let mediaRecorder;
+            let audioChunks = [];
+            
+            startButton.addEventListener('click', async function() {
+                audioChunks = [];
+                
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = function(e) {
+                        audioChunks.push(e.data);
+                    };
+                    
+                    mediaRecorder.onstop = function() {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        audioPlayback.src = audioUrl;
+                        audioPlayback.style.display = 'block';
+                        
+                        // Convert blob to base64 to send in form
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = function() {
+                            const base64data = reader.result;
+                            audioInputField.value = base64data;
+                        };
+                        
+                        statusElement.textContent = 'Recording complete - you can play it back or record again';
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    };
+                    
+                    mediaRecorder.start();
+                    statusElement.textContent = 'Recording in progress...';
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    
+                } catch (err) {
+                    console.error('Error accessing microphone:', err);
+                    statusElement.textContent = 'Error accessing microphone. Make sure your browser has permission.';
+                }
+            });
+            
+            stopButton.addEventListener('click', function() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Grade Answer - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-container {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .question-image {
+        max-width: 100%;
+        max-height: 300px;
+        margin-bottom: 20px;
+    }
+    
+    .audio-player {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .file-preview {
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Grade Student Answer</h1>
+        <p class="lead">Review and grade this submission</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'grade_submissions' answer.attempt.quiz.id %}" class="btn btn-outline-secondary">Back to Submissions</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Submission Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="question-container">
+                    <h5>Question:</h5>
+                    <p class="lead">{{ answer.question.question.text }}</p>
+                    
+                    <!-- Question media if present -->
+                    {% if answer.question.question.image %}
+                        <div class="text-center">
+                            <img src="{{ answer.question.question.image.url }}" alt="Question Image" class="question-image">
+                        </div>
+                    {% endif %}
+                    
+                    {% if answer.question.question.audio %}
+                        <div class="mb-3">
+                            <audio controls class="audio-player">
+                                <source src="{{ answer.question.question.audio.url }}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Student Information:</h5>
+                        <p><strong>Name:</strong> {{ answer.attempt.user.get_full_name|default:answer.attempt.user.username }}</p>
+                        <p><strong>Email:</strong> {{ answer.attempt.user.email }}</p>
+                        <p><strong>Submitted:</strong> {{ answer.attempt.end_time|date:"F j, Y, g:i a" }}</p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Quiz Information:</h5>
+                        <p><strong>Quiz:</strong> {{ answer.attempt.quiz.title }}</p>
+                        <p><strong>Status:</strong> 
+                            {% if answer.attempt.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif answer.attempt.status == 'timed_out' %}
+                                <span class="badge bg-warning">Timed Out</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Current Score:</strong> {{ answer.attempt.score }}%</p>
+                    </div>
+                </div>
+                
+                <h5>Student Answer:</h5>
+                <div class="student-answer p-3 bg-light rounded mb-4">
+                    {% if answer.text_answer %}
+                        <p>{{ answer.text_answer.text|linebreaks }}</p>
+                    {% elif answer.file_answer %}
+                        {% if answer.file_answer.file_type and answer.file_answer.file_type|slice:":5" == "image" %}
+                            <div class="text-center">
+                                <img src="{{ answer.file_answer.file.url }}" alt="Student Submission" class="file-preview">
+                            </div>
+                        {% elif answer.file_answer.file_type and answer.file_answer.file_type|slice:":5" == "appli" %}
+                            <p>Document file uploaded: <a href="{{ answer.file_answer.file.url }}" target="_blank" class="btn btn-outline-primary">View File</a></p>
+                        {% else %}
+                            <p>File uploaded: <a href="{{ answer.file_answer.file.url }}" target="_blank" class="btn btn-outline-primary">Download File</a></p>
+                        {% endif %}
+                    {% elif answer.voice_recording %}
+                        <div class="mb-3">
+                            <audio controls class="audio-player">
+                                <source src="{{ answer.voice_recording.audio_file.url }}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                        <p><strong>Duration:</strong> {{ answer.voice_recording.duration }} seconds</p>
+                    {% else %}
+                        <p class="text-muted">No answer content available.</p>
+                    {% endif %}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Grading</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_correct" id="gradingCorrect" value="true" {% if answer.is_correct %}checked{% endif %}>
+                            <label class="form-check-label" for="gradingCorrect">
+                                Mark as Correct
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_correct" id="gradingIncorrect" value="false" {% if not answer.is_correct %}checked{% endif %}>
+                            <label class="form-check-label" for="gradingIncorrect">
+                                Mark as Incorrect
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="feedback" class="form-label">Feedback to Student</label>
+                        <textarea class="form-control" id="feedback" name="feedback" rows="4">{{ answer.feedback }}</textarea>
+                        <div class="form-text">Provide constructive feedback to the student about their answer.</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Save Grading</button>
+                        <a href="{% url 'grade_submissions' answer.attempt.quiz.id %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

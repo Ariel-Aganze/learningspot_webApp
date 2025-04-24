@@ -11,23 +11,116 @@ class Question(models.Model):
         ('advanced', 'Advanced'),
     )
     
+    QUESTION_TYPE_CHOICES = (
+        # Multiple choice questions
+        ('multiple_choice', 'Multiple Choice (Single Select)'),
+        ('multi_select', 'Multiple Choice (Multi Select)'),
+        ('true_false', 'True/False'),
+        ('dropdown', 'Dropdown'),
+        ('star_rating', 'Star Rating'),
+        ('likert_scale', 'Likert Scale'),
+        ('matrix', 'Matrix Questions'),
+        ('image_choice', 'Image Choice'),
+        ('image_rating', 'Image Rating'),
+        
+        # Text questions
+        ('short_answer', 'Short Answer'),
+        ('long_answer', 'Long Answer'),
+        
+        # Media questions
+        ('file_upload', 'File Upload'),
+        ('voice_record', 'Voice Recording'),
+        
+        # Matching questions
+        ('matching', 'Matching'),
+    )
+    
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='questions')
     text = models.TextField()
+    question_type = models.CharField(max_length=20, choices=QUESTION_TYPE_CHOICES, default='multiple_choice')
     difficulty = models.CharField(max_length=15, choices=DIFFICULTY_CHOICES)
     time_limit = models.PositiveIntegerField(default=60, help_text="Time limit in seconds")
     is_active = models.BooleanField(default=True)
+    
+    # Media fields for questions
+    image = models.ImageField(upload_to='question_images/', blank=True, null=True)
+    audio = models.FileField(upload_to='question_audio/', blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return f"{self.text[:50]}..."
+    
+    def is_multiple_choice_type(self):
+        """Check if the question is a multiple choice type that requires choices"""
+        return self.question_type in [
+            'multiple_choice', 'multi_select', 'true_false', 'dropdown',
+            'star_rating', 'likert_scale', 'matrix', 'image_choice', 
+            'image_rating', 'matching'
+        ]
+    
+    def is_text_answer_type(self):
+        """Check if the question requires a text answer"""
+        return self.question_type in ['short_answer', 'long_answer']
+    
+    def is_file_upload_type(self):
+        """Check if the question requires a file upload"""
+        return self.question_type in ['file_upload', 'voice_record']
 
 class Choice(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='choices')
     text = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
     
+    # For matching questions
+    match_text = models.CharField(max_length=255, blank=True, null=True)
+    
+    # For image choice
+    image = models.ImageField(upload_to='choice_images/', blank=True, null=True)
+    
     def __str__(self):
         return self.text
+
+class TextAnswer(models.Model):
+    """Model for storing text-based answers to short_answer and long_answer questions"""
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='text_answers')
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['question', 'student']
+    
+    def __str__(self):
+        return f"Answer by {self.student.username} for {self.question}"
+
+class FileAnswer(models.Model):
+    """Model for storing file upload answers"""
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='file_answers')
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='student_uploads/')
+    file_type = models.CharField(max_length=50, blank=True)  # Stores the MIME type
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['question', 'student']
+    
+    def __str__(self):
+        return f"File upload by {self.student.username} for {self.question}"
+
+class VoiceRecording(models.Model):
+    """Model for storing voice recording answers"""
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='voice_recordings')
+    student = models.ForeignKey(User, on_delete=models.CASCADE)
+    audio_file = models.FileField(upload_to='voice_recordings/')
+    duration = models.PositiveIntegerField(help_text="Duration in seconds", default=0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['question', 'student']
+    
+    def __str__(self):
+        return f"Voice recording by {self.student.username} for {self.question}"
 
 class Quiz(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='quizzes')
@@ -120,9 +213,14 @@ class QuizAttempt(models.Model):
 class QuizAnswer(models.Model):
     attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
-    selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
+    selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE, null=True, blank=True)
     is_correct = models.BooleanField(default=False)
     time_taken = models.PositiveIntegerField(default=0, help_text="Time taken in seconds")
+    
+    # References to other answer types
+    text_answer = models.OneToOneField(TextAnswer, on_delete=models.SET_NULL, null=True, blank=True)
+    file_answer = models.OneToOneField(FileAnswer, on_delete=models.SET_NULL, null=True, blank=True)
+    voice_recording = models.OneToOneField(VoiceRecording, on_delete=models.SET_NULL, null=True, blank=True)
     
     class Meta:
         unique_together = ['attempt', 'question']
@@ -131,5 +229,11 @@ class QuizAnswer(models.Model):
         return f"Answer by {self.attempt.user.username} for {self.question}"
     
     def save(self, *args, **kwargs):
-        self.is_correct = self.selected_choice.is_correct
+        # For multiple choice questions
+        if self.selected_choice:
+            self.is_correct = self.selected_choice.is_correct
+        
+        # For other question types, correctness must be determined manually
+        # This would typically be done by a teacher or an automated system
+        
         super().save(*args, **kwargs)

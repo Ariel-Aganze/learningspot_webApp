@@ -13,9 +13,13 @@ urlpatterns = [
     path('questions/', views.question_list, name='question_list'),
     path('questions/create/', views.question_create, name='question_create'),
     path('questions/update/<int:question_id>/', views.question_update, name='question_update'),
-    path('', views.quiz_list, name='quiz_list'),  # This should be at the root of quizzes/
+    path('', views.quiz_list, name='quiz_list'),
     path('create/', views.quiz_create, name='quiz_create'),
     path('update/<int:quiz_id>/', views.quiz_update, name='quiz_update'),
     path('questions/<int:quiz_id>/', views.quiz_questions, name='quiz_questions'),
     path('results/<int:quiz_id>/', views.quiz_results_admin, name='quiz_results_admin'),
+    
+    # Teacher grading views
+    path('grade/<int:quiz_id>/', views.grade_submissions, name='grade_submissions'),
+    path('grade/answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
 ]
