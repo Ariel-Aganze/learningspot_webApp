@@ -119,8 +119,10 @@ def create_event(request):
             form.save_m2m()
             
             messages.success(request, "Event created successfully.")
-            return redirect('teacher_dashboard')
+            # Redirect to view_events instead of teacher_dashboard for better user flow
+            return redirect('view_events')
     else:
+        # Pre-populate with only students assigned to this teacher
         form = EventForm(request.user)
     
     return render(request, 'events/event_form.html', {
@@ -179,3 +181,99 @@ def event_detail(request, event_id):
     return render(request, 'events/event_detail.html', {
         'event': event
     })
+
+@login_required
+@user_passes_test(is_teacher)
+def create_event_from_timesheet(request):
+    """
+    Create a new event based on a selected timesheet slot
+    """
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    import pytz
+    
+    # Get selected slot ID and student ID from form
+    student_id = request.GET.get('student_id')
+    slot_id = request.GET.get('selected_slot')
+    
+    if not student_id or not slot_id:
+        messages.error(request, "Missing required information to create event.")
+        return redirect('teacher_dashboard')
+    
+    try:
+        # Get the student
+        student = User.objects.get(id=student_id)
+        
+        # Get the selected time option
+        time_option = TimeOption.objects.get(id=slot_id)
+        
+        # Convert the day of week and time to an actual datetime
+        day_of_week_map = {
+            'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 
+            'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6
+        }
+        
+        # Get the current date
+        today = timezone.now().date()
+        
+        # Calculate the target day of the week
+        target_day_index = day_of_week_map.get(time_option.day_of_week)
+        
+        if target_day_index is None:
+            messages.error(request, f"Invalid day of week: {time_option.day_of_week}")
+            return redirect('teacher_dashboard')
+        
+        # Get the current day of the week
+        current_day_index = today.weekday()
+        
+        # Calculate days to add to get to the target day
+        days_ahead = (target_day_index - current_day_index) % 7
+        
+        # If days_ahead is 0, it means today is the target day,
+        # in which case schedule for next week if the time has already passed
+        if days_ahead == 0:
+            now = timezone.now()
+            
+            # Convert time_option.start_time (which is a time object) to a datetime with today's date
+            today_datetime = timezone.make_aware(
+                datetime.combine(today, time_option.start_time)
+            )
+            
+            if now > today_datetime:
+                days_ahead = 7  # Schedule for next week
+        
+        # Calculate the event date
+        event_date = today + timedelta(days=days_ahead)
+        
+        # Create datetime objects for start and end
+        tz = pytz.timezone('UTC')  # Use your actual timezone
+        start_datetime = tz.localize(
+            datetime.combine(event_date, time_option.start_time)
+        )
+        end_datetime = tz.localize(
+            datetime.combine(event_date, time_option.end_time)
+        )
+        
+        # Prepopulate form data and redirect to create event form
+        return render(request, 'events/event_form.html', {
+            'title': 'Create New Event',
+            'form': EventForm(
+                request.user,
+                initial={
+                    'title': f'Class with {student.get_full_name() or student.username}',
+                    'start_datetime': start_datetime,
+                    'end_datetime': end_datetime,
+                    'students': [student.id],
+                    'description': f'Class scheduled based on availability for {time_option.day_of_week}.'
+                }
+            )
+        })
+    
+    except User.DoesNotExist:
+        messages.error(request, "Student not found.")
+    except TimeOption.DoesNotExist:
+        messages.error(request, "Selected time option not found.")
+    except Exception as e:
+        messages.error(request, f"Error creating event: {str(e)}")
+    
+    return redirect('teacher_dashboard')

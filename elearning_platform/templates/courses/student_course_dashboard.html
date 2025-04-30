@@ -1,4 +1,3 @@
-<!-- templates/courses/student_course_dashboard.html -->
 {% extends 'base.html' %}
 {% load course_tags %}
 
@@ -130,26 +129,47 @@
                     <!-- Assignments Tab -->
                     <div class="tab-pane fade" id="assignments" role="tabpanel">
                         {% if assignments %}
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Course Assignments</h5>
+                                <a href="{% url 'student_assignments' course.slug %}" class="btn btn-sm btn-outline-primary">View All Assignments</a>
+                            </div>
                             <div class="list-group">
                                 {% for assignment in assignments %}
-    {% with submission=submissions_dict|get:assignment.id %}
-    <div class="list-group-item list-group-item-action">
-        <div class="d-flex w-100 justify-content-between">
-            <h5 class="mb-1">{{ assignment.title }}</h5>
-            {% if submission %}
-                {% if submission.status == 'pending' %}
-                    <span class="badge bg-warning">Pending</span>
-                {% elif submission.status == 'submitted' %}
-                    <span class="badge bg-info">Submitted</span>
-                {% else %}
-                    <span class="badge bg-success">Graded: {{ submission.grade }}/{{ assignment.points }}</span>
-                {% endif %}
-            {% endif %}
-        </div>
-        <!-- rest of the code -->
-    </div>
-    {% endwith %}
-{% endfor %}
+                                    <div class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                                            <small class="text-muted">
+                                                {% if assignment.is_past_due %}
+                                                    <span class="text-danger">Due date passed</span>
+                                                {% else %}
+                                                    Due: {{ assignment.due_date|date:"M d, Y" }}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <p class="mb-1 small text-muted">{{ assignment.description|truncatechars:100 }}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <small>Points: {{ assignment.points }}</small>
+                                            <div>
+                                                {% with submission=submissions_dict|get:assignment.id %}
+                                                    {% if submission %}
+                                                        {% if submission.status == 'submitted' %}
+                                                            <span class="badge bg-primary">Submitted</span>
+                                                        {% elif submission.status == 'graded' %}
+                                                            <span class="badge bg-success">Graded: {{ submission.grade }}/{{ assignment.points }}</span>
+                                                        {% elif submission.status == 'late' %}
+                                                            <span class="badge bg-warning">Late</span>
+                                                        {% elif submission.status == 'resubmit' %}
+                                                            <span class="badge bg-danger">Needs Resubmission</span>
+                                                        {% endif %}
+                                                        <a href="{% url 'submission_detail' submission.id %}" class="btn btn-sm btn-outline-primary ms-2">View</a>
+                                                    {% else %}
+                                                        <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-primary">Submit</a>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <div class="alert alert-info">

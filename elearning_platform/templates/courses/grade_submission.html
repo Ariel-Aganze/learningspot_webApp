@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Grade Submission - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .submission-file {
+        max-width: 100%;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    
+    .file-preview {
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+    }
+    
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Grade Submission</h1>
+        <p class="lead">{{ assignment.title }} - {{ submission.student.get_full_name|default:submission.student.username }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-outline-secondary">Back to Submissions</a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Student Submission -->
+    <div class="col-md-7 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Student Submission</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p><strong>Student:</strong> {{ submission.student.get_full_name|default:submission.student.username }}</p>
+                    <p><strong>Submitted:</strong> {{ submission.submitted_at|date:"M d, Y H:i" }}</p>
+                    <p>
+                        <strong>Status:</strong>
+                        {% if submission.status == 'submitted' %}
+                            <span class="badge bg-primary">Submitted</span>
+                        {% elif submission.status == 'graded' %}
+                            <span class="badge bg-success">Graded</span>
+                        {% elif submission.status == 'late' %}
+                            <span class="badge bg-warning">Late</span>
+                        {% elif submission.status == 'resubmit' %}
+                            <span class="badge bg-danger">Needs Resubmission</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                {% if submission.submission_text %}
+                    <div class="mb-3">
+                        <h6>Text Submission</h6>
+                        <pre>{{ submission.submission_text }}</pre>
+                    </div>
+                {% endif %}
+                
+                {% if submission.submission_file %}
+                    <div class="mb-3">
+                        <h6>File Submission</h6>
+                        <div class="submission-file">
+                            <p class="mb-2">{{ submission.submission_file_name|default:submission.submission_file.name }}</p>
+                            
+                            {% if submission.submission_file.name|lower|slice:"-4:" == ".pdf" %}
+                                <p><a href="{{ submission.submission_file.url }}" class="btn btn-sm btn-primary" target="_blank">View PDF</a></p>
+                            {% elif submission.submission_file.name|lower|slice:"-4:" == ".jpg" or submission.submission_file.name|lower|slice:"-4:" == ".png" or submission.submission_file.name|lower|slice:"-5:" == ".jpeg" or submission.submission_file.name|lower|slice:"-4:" == ".gif" %}
+                                <img src="{{ submission.submission_file.url }}" alt="Student submission" class="file-preview">
+                            {% else %}
+                                <p>
+                                    <a href="{{ submission.submission_file.url }}" class="btn btn-sm btn-primary" target="_blank" download>
+                                        <i class="bi bi-download"></i> Download File
+                                    </a>
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grading Form -->
+    <div class="col-md-5 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Grade Assignment</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Assignment</label>
+                        <input type="text" class="form-control" value="{{ assignment.title }}" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Maximum Points</label>
+                        <input type="text" class="form-control" value="{{ assignment.points }}" readonly>
+                    </div>
+                    
+                    {{ form.grade|as_crispy_field }}
+                    {{ form.feedback|as_crispy_field }}
+                    {{ form.status|as_crispy_field }}
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Save Grade</button>
+                        <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

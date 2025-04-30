@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Assignments - {{ course.title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Assignments</h1>
+        <p class="lead">{{ course.title }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'student_course_dashboard' course.slug %}" class="btn btn-outline-secondary">Back to Course</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Course Assignments</h5>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                    <div class="list-group">
+                        {% for assignment in assignments %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ assignment.title }}</h5>
+                                    <small class="text-muted">
+                                        {% if assignment.is_past_due %}
+                                            <span class="text-danger">Due date passed</span>
+                                        {% else %}
+                                            Due: {{ assignment.due_date|date:"M d, Y H:i" }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <p class="mb-1">{{ assignment.description }}</p>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <small class="text-muted">Points: {{ assignment.points }}</small>
+                                    <div>
+                                        {% if assignment.submission_status == 'submitted' %}
+                                            <span class="badge bg-primary">Submitted</span>
+                                            <a href="{% url 'submission_detail' assignment.submission_id %}" class="btn btn-sm btn-outline-primary ms-2">View Submission</a>
+                                        {% elif assignment.submission_status == 'graded' %}
+                                            <span class="badge bg-success">Graded</span>
+                                            <a href="{% url 'submission_detail' assignment.submission_id %}" class="btn btn-sm btn-outline-primary ms-2">View Grade</a>
+                                        {% elif assignment.submission_status == 'late' %}
+                                            <span class="badge bg-warning">Late Submission</span>
+                                            <a href="{% url 'submission_detail' assignment.submission_id %}" class="btn btn-sm btn-outline-primary ms-2">View Submission</a>
+                                        {% elif assignment.submission_status == 'resubmit' %}
+                                            <span class="badge bg-danger">Needs Resubmission</span>
+                                            <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-warning ms-2">Resubmit</a>
+                                        {% else %}
+                                            <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-primary">Submit Assignment</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No assignments available for this course yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

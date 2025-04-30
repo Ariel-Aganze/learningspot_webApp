@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Submissions for {{ assignment.title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Submissions: {{ assignment.title }}</h1>
+        <p class="lead">{{ assignment.course.title }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'assignment_list' %}" class="btn btn-outline-secondary">Back to Assignments</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Assignment Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p><strong>Description:</strong> {{ assignment.description }}</p>
+                        <p class="mb-0"><strong>Instructions:</strong> {{ assignment.instructions|linebreaks }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Due Date:</strong> {{ assignment.due_date|date:"M d, Y H:i" }}</p>
+                        <p><strong>Total Points:</strong> {{ assignment.points }}</p>
+                        <p><strong>Status:</strong> 
+                            {% if assignment.status == 'published' %}
+                                <span class="badge bg-success">Published</span>
+                            {% elif assignment.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% else %}
+                                <span class="badge bg-danger">Archived</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Student Submissions</h5>
+            </div>
+            <div class="card-body">
+                {% if submissions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Submitted Date</th>
+                                    <th>Status</th>
+                                    <th>File</th>
+                                    <th>Grade</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions %}
+                                    <tr>
+                                        <td>{{ submission.student.get_full_name|default:submission.student.username }}</td>
+                                        <td>{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            {% if submission.status == 'submitted' %}
+                                                <span class="badge bg-primary">Submitted</span>
+                                            {% elif submission.status == 'graded' %}
+                                                <span class="badge bg-success">Graded</span>
+                                            {% elif submission.status == 'late' %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% elif submission.status == 'resubmit' %}
+                                                <span class="badge bg-danger">Needs Resubmission</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.submission_file %}
+                                                <a href="{{ submission.submission_file.url }}" class="btn btn-sm btn-outline-primary" target="_blank" download>
+                                                    {{ submission.submission_file_name|default:"Download" }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">No file</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if submission.grade is not None %}
+                                                {{ submission.grade }}/{{ assignment.points }}
+                                                <div class="progress mt-1" style="height: 4px;">
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ submission.get_grade_percentage }}%;" aria-valuenow="{{ submission.get_grade_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">Not graded</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'grade_submission' submission.id %}" class="btn btn-sm btn-primary">
+                                                {% if submission.status == 'graded' %}
+                                                    Update Grade
+                                                {% else %}
+                                                    Grade
+                                                {% endif %}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No submissions received for this assignment yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

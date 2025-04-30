@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">{{ title }}</h2>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.course|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.points|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    {{ form.description|as_crispy_field }}
+                    
+                    {{ form.instructions|as_crispy_field }}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.due_date|as_crispy_field }}
+                            <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Save Assignment</button>
+                        <a href="{% url 'assignment_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format the due date field as datetime-local
+        const dueDateField = document.getElementById('id_due_date');
+        if (dueDateField) {
+            dueDateField.type = 'datetime-local';
+            
+            // If the field has a value, format it correctly
+            if (dueDateField.value) {
+                // Convert Django datetime format to HTML datetime-local format
+                // From: YYYY-MM-DD HH:MM:SS to YYYY-MM-DDTHH:MM
+                const dateValue = dueDateField.value;
+                if (dateValue.includes(' ')) {
+                    const [date, time] = dateValue.split(' ');
+                    const timeFormatted = time.substr(0, 5); // Take only HH:MM
+                    dueDateField.value = `${date}T${timeFormatted}`;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

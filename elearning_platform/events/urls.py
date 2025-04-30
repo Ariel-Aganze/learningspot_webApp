@@ -5,6 +5,7 @@ urlpatterns = [
     # Teacher URLs
     path('timesheet/send/<int:student_id>/', views.send_timesheet, name='send_timesheet'),
     path('event/create/', views.create_event, name='create_event'),
+    path('event/create-from-timesheet/', views.create_event_from_timesheet, name='create_event_from_timesheet'),
     path('event/update/<int:event_id>/', views.update_event, name='update_event'),
     
     # Student URLs

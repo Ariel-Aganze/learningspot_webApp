@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Assignments - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Assignments</h1>
+        <p class="lead">Manage course assignments</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'assignment_create' %}" class="btn btn-primary">Create New Assignment</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Assignment List</h5>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Submissions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in assignments %}
+                                    <tr>
+                                        <td>{{ assignment.title }}</td>
+                                        <td>{{ assignment.course.title }}</td>
+                                        <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            {% if assignment.status == 'published' %}
+                                                <span class="badge bg-success">Published</span>
+                                            {% elif assignment.status == 'draft' %}
+                                                <span class="badge bg-secondary">Draft</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Archived</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ assignment.submission_count }} 
+                                            {% if assignment.ungraded_count %}
+                                                <span class="badge bg-warning">{{ assignment.ungraded_count }} ungraded</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'assignment_update' assignment.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-sm btn-outline-secondary">View Submissions</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No assignments found. <a href="{% url 'assignment_create' %}" class="alert-link">Create your first assignment</a>.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

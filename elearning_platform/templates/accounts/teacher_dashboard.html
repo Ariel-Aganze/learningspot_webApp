@@ -3,6 +3,34 @@
 {% block title %}Teacher Dashboard - E-Learning Platform{% endblock %}
 
 {% block content %}
+<!-- Error message section at the top of the dashboard -->
+{% if error_message %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> {{ error_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Debug section (only visible to admin/staff) -->
+{% if request.user.is_staff and debug_info %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">Debug Information</h5>
+            </div>
+            <div class="card-body">
+                <pre>{{ debug_info }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row mb-4">
     <div class="col-12">
         <h1>Teacher Dashboard</h1>
@@ -83,82 +111,163 @@
     </div>
 </div>
 
+<!-- Confirmed Timesheets Section -->
 <div class="row">
-    <!-- Quiz Management -->
-   <!-- Quiz Management -->
-<div class="col-md-6 mb-4">
-    <div class="card shadow">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Quiz Management</h5>
-            <div>
-                <a href="{% url 'quiz_create' %}" class="btn btn-sm btn-success">Create Quiz</a>
-                <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Add Question</a>
+    <div class="col-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Confirmed Student Schedules</h5>
+                <a href="{% url 'view_events' %}" class="btn btn-sm btn-primary">View All Events</a>
+            </div>
+            <div class="card-body">
+                {% if confirmed_timesheets %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Date Confirmed</th>
+                                    <th>Selected Times</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for timesheet in confirmed_timesheets %}
+                                    <tr>
+                                        <td>{{ timesheet.student.get_full_name|default:timesheet.student.username }}</td>
+                                        <td>{{ timesheet.updated_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <ul class="list-unstyled mb-0">
+                                                {% for option in timesheet.time_options.all %}
+                                                    {% if option.is_selected %}
+                                                        <li><span class="badge bg-success">{{ option.day_of_week }}</span> {{ option.start_time|time:"g:i A" }} - {{ option.end_time|time:"g:i A" }}</li>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#scheduleModal-{{ timesheet.id }}">
+                                                Schedule Class
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>No confirmed timesheets yet.</p>
+                        <p class="text-muted">When students confirm their availability, it will appear here.</p>
+                        
+                        {% if assigned_students %}
+                            <div class="mt-3">
+                                <p>Send a timesheet to your students to request their availability:</p>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-8">
+                                        <div class="list-group">
+                                            {% for student in assigned_students %}
+                                                <a href="{% url 'send_timesheet' student.user.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                                    {{ student.user.get_full_name|default:student.user.username }}
+                                                    <span class="btn btn-sm btn-outline-primary">Send Timesheet</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </div>
-        <div class="card-body">
-            {% if recent_quizzes %}
-                <div class="list-group">
-                    {% for quiz in recent_quizzes %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">{{ quiz.title }}</h6>
-                                <small class="text-muted">{{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions</small>
-                            </div>
-                            <div>
-                                <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
-                                <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-                <div class="text-center mt-3">
-                    <a href="{% url 'quiz_list' %}" class="btn btn-outline-primary">View All Quizzes</a>
-                </div>
-            {% else %}
-                <div class="text-center py-4">
-                    <p>You haven't created any quizzes yet.</p>
-                    <a href="{% url 'quiz_create' %}" class="btn btn-primary">Create Your First Quiz</a>
-                </div>
-            {% endif %}
-        </div>
     </div>
 </div>
+
+<div class="row">
+    <!-- Quiz Management -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Quiz Management</h5>
+                <div>
+                    <a href="{% url 'quiz_create' %}" class="btn btn-sm btn-success">Create Quiz</a>
+                    <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Add Question</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_quizzes %}
+                    <div class="list-group">
+                        {% for quiz in recent_quizzes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ quiz.title }}</h6>
+                                    <small class="text-muted">{{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions</small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
+                                    <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'quiz_list' %}" class="btn btn-outline-primary">View All Quizzes</a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>You haven't created any quizzes yet.</p>
+                        <a href="{% url 'quiz_create' %}" class="btn btn-primary">Create Your First Quiz</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
     
     <!-- Student Quiz Results -->
-    <!-- Student Quiz Results -->
-<div class="col-md-6 mb-4">
-    <div class="card shadow">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Recent Quiz Submissions</h5>
-            <!-- Remove the grade_submissions_all URL since it doesn't exist -->
-        </div>
-        <div class="card-body">
-            {% if recent_attempts %}
-                <div class="list-group">
-                    {% for attempt in recent_attempts %}
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
-                                <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
-                                    {{ attempt.score }}%
-                                </span>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Quiz Submissions</h5>
+                <a href="{% url 'quiz_list' %}" class="btn btn-sm btn-primary">View All Quizzes</a>
+            </div>
+            <div class="card-body">
+                {% if recent_attempts %}
+                    <div class="list-group">
+                        {% for attempt in recent_attempts %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
+                                    <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
+                                        {{ attempt.score }}%
+                                    </span>
+                                </div>
+                                <small class="text-muted">{{ attempt.quiz.title }} - {{ attempt.end_time|date:"M d, Y H:i" }}</small>
+                                {% if attempt.has_pending_grading %}
+                                    <div class="mt-2">
+                                        <a href="{% url 'grade_submissions' attempt.quiz.id %}" class="btn btn-sm btn-warning">Grade Submissions</a>
+                                    </div>
+                                {% endif %}
                             </div>
-                            <small class="text-muted">{{ attempt.quiz.title }} - {{ attempt.end_time|date:"M d, Y H:i" }}</small>
-                            {% if attempt.has_pending_grading %}
-                                <a href="{% url 'grade_submissions' attempt.quiz.id %}" class="btn btn-sm btn-outline-warning mt-2">Grade Submissions</a>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-                <!-- Remove or update the quiz_results_all URL -->
-            {% else %}
-                <div class="text-center py-4">
-                    <p>No recent quiz submissions to display.</p>
-                </div>
-            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% elif not recent_attempts and assigned_students %}
+                    <div class="text-center py-4">
+                        <p>No quiz submissions yet from your students.</p>
+                        <p class="text-muted">As your students complete quizzes, their submissions will appear here.</p>
+                        {% if recent_quizzes %}
+                            <p>You can check individual quiz results by going to the quiz details.</p>
+                        {% endif %}
+                    </div>
+                {% elif not assigned_students %}
+                    <div class="text-center py-4">
+                        <p>No students are currently assigned to you.</p>
+                        <p class="text-muted">Quiz submissions will appear here once you have students assigned.</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 <div class="row">
@@ -201,17 +310,42 @@
     <!-- Upcoming Classes -->
     <div class="col-md-6 mb-4">
         <div class="card shadow">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Upcoming Classes</h5>
+                <a href="{% url 'create_event' %}" class="btn btn-sm btn-primary">Schedule Class</a>
             </div>
             <div class="card-body">
-                <div id="events">
-                    <!-- This will be populated when we implement the events app -->
+                {% if events %}
+                    <div class="list-group">
+                        {% for event in events %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-1">{{ event.title }}</h6>
+                                    <small class="text-muted">{{ event.start_datetime|date:"M d, Y" }} at {{ event.start_datetime|time:"g:i A" }}</small>
+                                </div>
+                                <p class="mb-1">Students: {{ event.students.count }}</p>
+                                <div class="mt-2">
+                                    <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
                     <div class="text-center py-3">
                         <p>No upcoming classes at the moment.</p>
+                        <div class="mt-2">
+                            <p class="text-muted mb-2">To schedule a class:</p>
+                            <ol class="text-start small text-muted">
+                                <li>Click "Schedule New Class"</li>
+                                <li>Fill in the event details</li>
+                                <li>Select students who should attend</li>
+                                <li>Provide a Google Meet link</li>
+                                <li>Save the event</li>
+                            </ol>
+                        </div>
                         <a href="{% url 'create_event' %}" class="btn btn-primary">Schedule New Class</a>
                     </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -247,4 +381,45 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for scheduling classes -->
+{% for timesheet in confirmed_timesheets %}
+    <div class="modal fade" id="scheduleModal-{{ timesheet.id }}" tabindex="-1" aria-labelledby="scheduleModalLabel-{{ timesheet.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleModalLabel-{{ timesheet.id }}">Schedule Class for {{ timesheet.student.get_full_name|default:timesheet.student.username }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{% url 'create_event_from_timesheet' %}" method="get" id="scheduleForm-{{ timesheet.id }}">
+                        <input type="hidden" name="student_id" value="{{ timesheet.student.id }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Selected Time Slots:</label>
+                            <div class="row">
+                                {% for option in timesheet.time_options.all %}
+                                    {% if option.is_selected %}
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="selected_slot" id="slot-{{ option.id }}" value="{{ option.id }}" {% if forloop.first %}checked{% endif %}>
+                                                <label class="form-check-label" for="slot-{{ option.id }}">
+                                                    <strong>{{ option.day_of_week }}</strong>: {{ option.start_time|time:"g:i A" }} - {{ option.end_time|time:"g:i A" }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" form="scheduleForm-{{ timesheet.id }}" class="btn btn-primary">Create Class</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
 {% endblock %}

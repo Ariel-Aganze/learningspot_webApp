@@ -13,6 +13,13 @@ from .forms import CourseForm, CourseLevelForm
 from accounts.models import PaymentProof, StudentProfile
 from accounts.forms import PaymentProofForm
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.utils import timezone
+from .models import Assignment, AssignmentSubmission
+from .forms import AssignmentForm, AssignmentSubmissionForm, GradeSubmissionForm
+
 def is_admin(user):
     return user.is_staff or user.is_superuser
 
@@ -269,3 +276,214 @@ def teacher_course_management(request, slug):
     }
     
     return render(request, 'courses/teacher_course_management.html', context)
+
+
+
+
+def is_teacher(user):
+    return user.user_type == 'teacher'
+
+# Teacher views for assignments
+@login_required
+@user_passes_test(is_teacher)
+def assignment_list(request):
+    """View for teachers to see all assignments they can manage"""
+    # Get all courses where the teacher has assigned students
+    teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
+    student_ids = teacher_students.values_list('user_id', flat=True)
+    
+    # Get courses for these students
+    course_ids = set()
+    for student_id in student_ids:
+        student_payments = PaymentProof.objects.filter(
+            user_id=student_id, 
+            status='approved'
+        )
+        course_ids.update(student_payments.values_list('course_id', flat=True))
+    
+    # Get assignments for these courses
+    assignments = Assignment.objects.filter(course_id__in=course_ids).order_by('-created_at')
+    
+    # Get submission counts for each assignment
+    for assignment in assignments:
+        assignment.submission_count = assignment.submissions.count()
+        assignment.ungraded_count = assignment.submissions.filter(status='submitted').count()
+    
+    context = {
+        'assignments': assignments
+    }
+    
+    return render(request, 'courses/assignment_list.html', context)
+
+@login_required
+@user_passes_test(is_teacher)
+def assignment_create(request):
+    """View for teachers to create a new assignment"""
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Assignment created successfully!")
+            return redirect('assignment_list')
+    else:
+        form = AssignmentForm()
+    
+    return render(request, 'courses/assignment_form.html', {
+        'form': form,
+        'title': 'Create Assignment'
+    })
+
+@login_required
+@user_passes_test(is_teacher)
+def assignment_update(request, assignment_id):
+    """View for teachers to update an existing assignment"""
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Assignment updated successfully!")
+            return redirect('assignment_list')
+    else:
+        form = AssignmentForm(instance=assignment)
+    
+    return render(request, 'courses/assignment_form.html', {
+        'form': form,
+        'assignment': assignment,
+        'title': 'Update Assignment'
+    })
+
+@login_required
+@user_passes_test(is_teacher)
+def assignment_submissions(request, assignment_id):
+    """View for teachers to see all submissions for an assignment"""
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    submissions = assignment.submissions.all().select_related('student')
+    
+    return render(request, 'courses/assignment_submissions.html', {
+        'assignment': assignment,
+        'submissions': submissions
+    })
+
+@login_required
+@user_passes_test(is_teacher)
+def grade_submission(request, submission_id):
+    """View for teachers to grade a specific submission"""
+    submission = get_object_or_404(AssignmentSubmission, id=submission_id)
+    assignment = submission.assignment
+    
+    # Verify this teacher is assigned to the student
+    if not StudentProfile.objects.filter(user=submission.student, assigned_teacher=request.user).exists():
+        messages.error(request, "You are not authorized to grade this submission.")
+        return redirect('assignment_list')
+    
+    if request.method == 'POST':
+        form = GradeSubmissionForm(request.POST, instance=submission)
+        if form.is_valid():
+            grade_submission = form.save(commit=False)
+            grade_submission.status = 'graded'
+            grade_submission.graded_at = timezone.now()
+            grade_submission.save()
+            
+            messages.success(request, f"Submission graded successfully!")
+            return redirect('assignment_submissions', assignment_id=assignment.id)
+    else:
+        form = GradeSubmissionForm(instance=submission)
+    
+    return render(request, 'courses/grade_submission.html', {
+        'form': form,
+        'submission': submission,
+        'assignment': assignment
+    })
+
+# Student views for assignments
+@login_required
+def student_assignments(request, course_slug):
+    """View for students to see all assignments for a specific course"""
+    course = get_object_or_404(Course, slug=course_slug)
+    
+    # Verify the student is enrolled
+    if not PaymentProof.objects.filter(user=request.user, course=course, status='approved').exists():
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect('student_dashboard')
+    
+    # Get all assignments for this course
+    assignments = Assignment.objects.filter(course=course, status='published')
+    
+    # Add submission status for each assignment
+    for assignment in assignments:
+        submission = AssignmentSubmission.objects.filter(
+            assignment=assignment,
+            student=request.user
+        ).first()
+        
+        if submission:
+            assignment.submission_status = submission.status
+            assignment.submission_id = submission.id
+        else:
+            assignment.submission_status = None
+    
+    return render(request, 'courses/student_assignments.html', {
+        'course': course,
+        'assignments': assignments
+    })
+
+@login_required
+def assignment_detail(request, assignment_id):
+    """View for students to see assignment details and submit work"""
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    
+    # Verify the student is enrolled in the course
+    if not PaymentProof.objects.filter(user=request.user, course=assignment.course, status='approved').exists():
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect('student_dashboard')
+    
+    # Check if student has already submitted
+    submission = AssignmentSubmission.objects.filter(
+        assignment=assignment,
+        student=request.user
+    ).first()
+    
+    if request.method == 'POST' and (not submission or submission.status == 'resubmit'):
+        form = AssignmentSubmissionForm(request.POST, request.FILES, instance=submission)
+        if form.is_valid():
+            submission = form.save(commit=False)
+            submission.assignment = assignment
+            submission.student = request.user
+            
+            # Set status based on due date
+            if assignment.is_past_due():
+                submission.status = 'late'
+            else:
+                submission.status = 'submitted'
+                
+            # Store the original filename
+            if submission.submission_file:
+                submission.submission_file_name = submission.submission_file.name
+                
+            submission.save()
+            messages.success(request, "Assignment submitted successfully!")
+            return redirect('student_assignments', course_slug=assignment.course.slug)
+    else:
+        form = AssignmentSubmissionForm(instance=submission)
+    
+    context = {
+        'assignment': assignment,
+        'submission': submission,
+        'form': form,
+        'is_past_due': assignment.is_past_due()
+    }
+    
+    return render(request, 'courses/assignment_detail.html', context)
+
+@login_required
+def submission_detail(request, submission_id):
+    """View for students to see their submission details and grade"""
+    submission = get_object_or_404(AssignmentSubmission, id=submission_id, student=request.user)
+    assignment = submission.assignment
+    
+    return render(request, 'courses/submission_detail.html', {
+        'submission': submission,
+        'assignment': assignment
+    })
