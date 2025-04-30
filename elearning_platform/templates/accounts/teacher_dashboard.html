@@ -84,8 +84,122 @@
 </div>
 
 <div class="row">
+    <!-- Quiz Management -->
+   <!-- Quiz Management -->
+<div class="col-md-6 mb-4">
+    <div class="card shadow">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Quiz Management</h5>
+            <div>
+                <a href="{% url 'quiz_create' %}" class="btn btn-sm btn-success">Create Quiz</a>
+                <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Add Question</a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if recent_quizzes %}
+                <div class="list-group">
+                    {% for quiz in recent_quizzes %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ quiz.title }}</h6>
+                                <small class="text-muted">{{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions</small>
+                            </div>
+                            <div>
+                                <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
+                                <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'quiz_list' %}" class="btn btn-outline-primary">View All Quizzes</a>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p>You haven't created any quizzes yet.</p>
+                    <a href="{% url 'quiz_create' %}" class="btn btn-primary">Create Your First Quiz</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+    
+    <!-- Student Quiz Results -->
+    <!-- Student Quiz Results -->
+<div class="col-md-6 mb-4">
+    <div class="card shadow">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Quiz Submissions</h5>
+            <!-- Remove the grade_submissions_all URL since it doesn't exist -->
+        </div>
+        <div class="card-body">
+            {% if recent_attempts %}
+                <div class="list-group">
+                    {% for attempt in recent_attempts %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
+                                <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
+                                    {{ attempt.score }}%
+                                </span>
+                            </div>
+                            <small class="text-muted">{{ attempt.quiz.title }} - {{ attempt.end_time|date:"M d, Y H:i" }}</small>
+                            {% if attempt.has_pending_grading %}
+                                <a href="{% url 'grade_submissions' attempt.quiz.id %}" class="btn btn-sm btn-outline-warning mt-2">Grade Submissions</a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <!-- Remove or update the quiz_results_all URL -->
+            {% else %}
+                <div class="text-center py-4">
+                    <p>No recent quiz submissions to display.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="row">
+    <!-- Question Bank -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Question Bank</h5>
+                <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Create Question</a>
+            </div>
+            <div class="card-body">
+                {% if question_stats %}
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h3>{{ question_stats.total }}</h3>
+                            <small class="text-muted">Total Questions</small>
+                        </div>
+                        <div class="col-4">
+                            <h3>{{ question_stats.multiple_choice }}</h3>
+                            <small class="text-muted">Multiple Choice</small>
+                        </div>
+                        <div class="col-4">
+                            <h3>{{ question_stats.other }}</h3>
+                            <small class="text-muted">Other Types</small>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'question_list' %}" class="btn btn-outline-primary">Manage Questions</a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>No questions in the bank yet.</p>
+                        <a href="{% url 'question_create' %}" class="btn btn-primary">Create First Question</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
     <!-- Upcoming Classes -->
-    <div class="col-md-12 mb-4">
+    <div class="col-md-6 mb-4">
         <div class="card shadow">
             <div class="card-header bg-white">
                 <h5 class="mb-0">Upcoming Classes</h5>
@@ -96,6 +210,37 @@
                     <div class="text-center py-3">
                         <p>No upcoming classes at the moment.</p>
                         <a href="{% url 'create_event' %}" class="btn btn-primary">Schedule New Class</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quiz Analytics -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Quiz Analytics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <h4>{{ quiz_stats.total_quizzes }}</h4>
+                        <small class="text-muted">Total Quizzes</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4>{{ quiz_stats.total_attempts }}</h4>
+                        <small class="text-muted">Total Attempts</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4>{{ quiz_stats.avg_score|floatformat:1 }}%</h4>
+                        <small class="text-muted">Average Score</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4>{{ quiz_stats.pass_rate|floatformat:1 }}%</h4>
+                        <small class="text-muted">Pass Rate</small>
                     </div>
                 </div>
             </div>

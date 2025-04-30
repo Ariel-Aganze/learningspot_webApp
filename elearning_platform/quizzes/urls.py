@@ -22,4 +22,6 @@ urlpatterns = [
     # Teacher grading views
     path('grade/<int:quiz_id>/', views.grade_submissions, name='grade_submissions'),
     path('grade/answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
+    path('grade-submissions/all/', views.grade_submissions_all, name='grade_submissions_all'),
+    path('results/all/', views.quiz_results_all, name='quiz_results_all'),
 ]

@@ -105,6 +105,12 @@
                 </div>
             </div>
             <div class="card-body">
+                <!-- Progress info -->
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Question {{ answered_count|add:1 }} of {{ total_questions }}</span>
+                    <span>Progress: {{ progress|floatformat:0 }}%</span>
+                </div>
+                
                 <!-- Progress bar -->
                 <div class="progress mb-4">
                     <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress }}%" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
@@ -144,32 +150,39 @@
                 <form method="post" id="questionForm" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    {{ form.time_taken }}
+                    <!-- Add hidden field to store the current question ID -->
+                    <input type="hidden" name="question_id" value="{{ question.id }}">
+                    <input type="hidden" name="time_taken" id="time_taken" value="0">
                     
                     <!-- Different question types -->
                     {% if question_type == 'multiple_choice' or question_type == 'true_false' %}
-                        <div class="mb-3">
-                            {% for radio in form.selected_choice %}
+                    <div class="mb-3">
+                        {% if question.question.choices.all %}
+                            <!-- Manually render each radio button -->
+                            {% for choice in question.question.choices.all %}
                                 <div class="form-check">
-                                    {{ radio.tag }}
-                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                        {{ radio.choice_label }}
-                                    </label>
+                                    <input type="radio" class="form-check-input" name="selected_choice" id="choice_{{ choice.id }}" value="{{ choice.id }}">
+                                    <label class="form-check-label" for="choice_{{ choice.id }}">{{ choice.text }}</label>
                                 </div>
                             {% endfor %}
-                        </div>
-                    
+                        {% else %}
+                            <div class="alert alert-warning">No choices available for this question.</div>
+                        {% endif %}
+                    </div>
                     {% elif question_type == 'multi_select' %}
-                        <div class="mb-3">
-                            {% for checkbox in form.selected_choices %}
+                    <div class="mb-3">
+                        {% if question.question.choices.all %}
+                            <!-- Manually render each checkbox -->
+                            {% for choice in question.question.choices.all %}
                                 <div class="form-check">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-                                        {{ checkbox.choice_label }}
-                                    </label>
+                                    <input type="checkbox" class="form-check-input" name="selected_choices" id="choice_{{ choice.id }}" value="{{ choice.id }}">
+                                    <label class="form-check-label" for="choice_{{ choice.id }}">{{ choice.text }}</label>
                                 </div>
                             {% endfor %}
-                        </div>
+                        {% else %}
+                            <div class="alert alert-warning">No choices available for this question.</div>
+                        {% endif %}
+                    </div>
                     
                     {% elif question_type == 'dropdown' %}
                         <div class="mb-3">
@@ -361,7 +374,10 @@
         let questionTimeTaken = 0;
         
         // Time taken field
-        const timeField = document.querySelector('input[name="time_taken"]');
+        const timeField = document.getElementById('time_taken');
+        if (timeField) {
+            timeField.value = 0; // Initialize with 0
+        }
         
         // Update quiz timer
         function updateQuizTimer() {
@@ -378,7 +394,41 @@
             
             // If time is up, submit the form
             if (remainingTime <= 0) {
-                window.location.reload();
+                // Use POST request instead of window.location.reload()
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = window.location.href;
+                
+                // Add CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                form.appendChild(csrfInput);
+                
+                // Add time_taken field
+                const timeInput = document.createElement('input');
+                timeInput.type = 'hidden';
+                timeInput.name = 'time_taken';
+                timeInput.value = questionTimeTaken;
+                form.appendChild(timeInput);
+                
+                // Add question_id field
+                const questionInput = document.createElement('input');
+                questionInput.type = 'hidden';
+                questionInput.name = 'question_id';
+                questionInput.value = document.querySelector('[name=question_id]').value;
+                form.appendChild(questionInput);
+                
+                // Add a timeout flag
+                const timeoutInput = document.createElement('input');
+                timeoutInput.type = 'hidden';
+                timeoutInput.name = 'timeout';
+                timeoutInput.value = 'true';
+                form.appendChild(timeoutInput);
+                
+                document.body.appendChild(form);
+                form.submit();
             }
             
             remainingTime--;
@@ -395,12 +445,18 @@
             
             // If question time is up, submit the form
             if (questionTimeLimit <= 0) {
-                document.getElementById('questionForm').submit();
+                const form = document.getElementById('questionForm');
+                if (form && timeField) {
+                    timeField.value = questionTimeTaken;
+                    form.submit();
+                }
             }
             
             questionTimeLimit--;
             questionTimeTaken++;
-            timeField.value = questionTimeTaken;
+            if (timeField) {
+                timeField.value = questionTimeTaken;
+            }
         }
         
         // Start timers
@@ -420,57 +476,87 @@
             const statusElement = document.getElementById('recorder-status');
             const audioPlayback = document.getElementById('audio-playback');
             const audioInputField = document.getElementById('recorded-audio');
+            const form = document.getElementById('questionForm');
             
             let mediaRecorder;
             let audioChunks = [];
+            let audioBlob;
             
-            startButton.addEventListener('click', async function() {
-                audioChunks = [];
-                
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
+            if (startButton && stopButton && statusElement && audioPlayback && audioInputField) {
+                startButton.addEventListener('click', async function() {
+                    audioChunks = [];
                     
-                    mediaRecorder.ondataavailable = function(e) {
-                        audioChunks.push(e.data);
-                    };
-                    
-                    mediaRecorder.onstop = function() {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        audioPlayback.src = audioUrl;
-                        audioPlayback.style.display = 'block';
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
                         
-                        // Convert blob to base64 to send in form
-                        const reader = new FileReader();
-                        reader.readAsDataURL(audioBlob);
-                        reader.onloadend = function() {
-                            const base64data = reader.result;
-                            audioInputField.value = base64data;
+                        mediaRecorder.ondataavailable = function(e) {
+                            audioChunks.push(e.data);
                         };
                         
-                        statusElement.textContent = 'Recording complete - you can play it back or record again';
-                        startButton.disabled = false;
-                        stopButton.disabled = true;
-                    };
-                    
-                    mediaRecorder.start();
-                    statusElement.textContent = 'Recording in progress...';
-                    startButton.disabled = true;
-                    stopButton.disabled = false;
-                    
-                } catch (err) {
-                    console.error('Error accessing microphone:', err);
-                    statusElement.textContent = 'Error accessing microphone. Make sure your browser has permission.';
-                }
-            });
-            
-            stopButton.addEventListener('click', function() {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                }
-            });
+                        mediaRecorder.onstop = function() {
+                            audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            audioPlayback.src = audioUrl;
+                            audioPlayback.style.display = 'block';
+                            
+                            // Convert blob to base64 to send in form
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = function() {
+                                const base64data = reader.result;
+                                audioInputField.value = base64data;
+                            };
+                            
+                            statusElement.textContent = 'Recording complete - you can play it back or record again';
+                            startButton.disabled = false;
+                            stopButton.disabled = true;
+                        };
+                        
+                        mediaRecorder.start();
+                        statusElement.textContent = 'Recording in progress...';
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        
+                    } catch (err) {
+                        console.error('Error accessing microphone:', err);
+                        statusElement.textContent = 'Error accessing microphone. Make sure your browser has permission.';
+                    }
+                });
+                
+                stopButton.addEventListener('click', function() {
+                    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                        mediaRecorder.stop();
+                    }
+                });
+            }
         }
+        
+        // Add AJAX timer updates to check with the server
+        function updateServerTimer() {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const attemptId = window.location.pathname.split('/').pop();
+            
+            fetch(`/quizzes/timer-update/${attemptId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'timeout') {
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(error => console.error('Timer update error:', error));
+        }
+        
+        // Update the server every 30 seconds
+        setInterval(updateServerTimer, 30000);
     });
 </script>
 {% endblock %}

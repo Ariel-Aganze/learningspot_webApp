@@ -107,36 +107,47 @@ class QuizAnswerForm(forms.Form):
     selected_choices = forms.MultipleChoiceField(widget=forms.CheckboxSelectMultiple, required=False)
     text_answer = forms.CharField(widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}), required=False)
     file_answer = forms.FileField(widget=forms.ClearableFileInput(attrs={'class': 'form-control'}), required=False)
-    time_taken = forms.IntegerField(widget=forms.HiddenInput())
+    time_taken = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
     
     def __init__(self, question, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.question = question
         self.question_type = question.question.question_type
         
+        # Debug output
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Initializing form for question type: {self.question_type}")
+        logger.debug(f"Question {question.id} has {question.question.choices.count()} choices")
+        
         # Configure form based on question type
-        if self.question_type in ['multiple_choice', 'true_false', 'dropdown', 'star_rating', 'image_choice', 'image_rating']:
+        if self.question_type in ['multiple_choice', 'true_false', 'dropdown', 'star_rating', 'image_choice', 'image_rating', 'likert_scale']:
             # Single select questions
             choices = [(choice.id, choice.text) for choice in question.question.choices.all()]
+            logger.debug(f"Setting choices for question {question.id}: {choices}")
             self.fields['selected_choice'].choices = choices
             # Hide other fields
             self.fields['selected_choices'].widget = forms.HiddenInput()
             self.fields['text_answer'].widget = forms.HiddenInput()
             self.fields['file_answer'].widget = forms.HiddenInput()
             
-        elif self.question_type in ['multi_select', 'likert_scale', 'matrix']:
+        elif self.question_type in ['multi_select']:
             # Multi-select questions
-            choices = [(choice.id, choice.text) for choice in question.question.choices.all()]
+            choices = [(str(choice.id), choice.text) for choice in question.question.choices.all()]
+            logger.debug(f"Setting multi-select choices for question {question.id}: {choices}")
             self.fields['selected_choices'].choices = choices
             # Hide other fields
             self.fields['selected_choice'].widget = forms.HiddenInput()
             self.fields['text_answer'].widget = forms.HiddenInput()
             self.fields['file_answer'].widget = forms.HiddenInput()
             
-        elif self.question_type in ['matching']:
-            # For matching questions, we'll need a custom widget
-            # This is more complex and would require additional JavaScript
-            pass
+        elif self.question_type in ['matrix', 'matching']:
+            # These question types are handled specially in the template
+            # Hide standard form fields since we'll use custom fields
+            self.fields['selected_choice'].widget = forms.HiddenInput()
+            self.fields['selected_choices'].widget = forms.HiddenInput()
+            self.fields['text_answer'].widget = forms.HiddenInput()
+            self.fields['file_answer'].widget = forms.HiddenInput()
             
         elif self.question_type in ['short_answer', 'long_answer']:
             # Text answer questions
@@ -147,13 +158,35 @@ class QuizAnswerForm(forms.Form):
             self.fields['selected_choices'].widget = forms.HiddenInput()
             self.fields['file_answer'].widget = forms.HiddenInput()
             
-        elif self.question_type in ['file_upload', 'voice_record']:
+        elif self.question_type in ['file_upload']:
             # File upload questions
-            if self.question_type == 'voice_record':
-                self.fields['file_answer'].widget = forms.ClearableFileInput(
-                    attrs={'class': 'form-control', 'accept': 'audio/*'}
-                )
             # Hide other fields
             self.fields['selected_choice'].widget = forms.HiddenInput()
             self.fields['selected_choices'].widget = forms.HiddenInput()
             self.fields['text_answer'].widget = forms.HiddenInput()
+            
+        elif self.question_type in ['voice_record']:
+            # Voice recording questions - using hidden field for base64 data
+            self.fields['file_answer'].widget = forms.HiddenInput()
+            self.fields['selected_choice'].widget = forms.HiddenInput()
+            self.fields['selected_choices'].widget = forms.HiddenInput()
+            self.fields['text_answer'].widget = forms.HiddenInput()
+            
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Set default value for time_taken if not provided
+        if 'time_taken' not in cleaned_data or cleaned_data['time_taken'] is None:
+            cleaned_data['time_taken'] = 0
+        
+        # For multiple choice, make sure we accept direct POST values if the form field fails
+        if self.question_type in ['multiple_choice', 'true_false', 'dropdown', 'star_rating', 'image_choice', 'image_rating', 'likert_scale']:
+            if 'selected_choice' not in cleaned_data or cleaned_data['selected_choice'] is None:
+                # Try to get from POST data if available
+                if hasattr(self, 'data') and 'selected_choice' in self.data:
+                    try:
+                        cleaned_data['selected_choice'] = int(self.data['selected_choice'])
+                    except (ValueError, TypeError):
+                        pass
+        
+        return cleaned_data
