@@ -38,6 +38,73 @@
     </div>
 </div>
 
+<!-- Assignment Management Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Assignment Management</h5>
+                <a href="{% url 'assignment_create' %}" class="btn btn-primary">Create New Assignment</a>
+            </div>
+            <div class="card-body">
+                {% if assignments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Submissions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in assignments|slice:":5" %}
+                                    <tr>
+                                        <td>{{ assignment.title }}</td>
+                                        <td>{{ assignment.course.title }}</td>
+                                        <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            {% if assignment.status == 'published' %}
+                                                <span class="badge bg-success">Published</span>
+                                            {% elif assignment.status == 'draft' %}
+                                                <span class="badge bg-secondary">Draft</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Archived</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ assignment.submission_count }} 
+                                            {% if assignment.ungraded_count %}
+                                                <span class="badge bg-warning">{{ assignment.ungraded_count }} ungraded</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'assignment_update' assignment.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-sm btn-outline-secondary">View Submissions</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'assignment_list' %}" class="btn btn-outline-primary">View All Assignments</a>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No assignments found. <a href="{% url 'assignment_create' %}" class="alert-link">Create your first assignment</a>.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- Teacher Profile -->
     <div class="col-md-4 mb-4">
@@ -271,36 +338,45 @@
 </div>
 
 <div class="row">
-    <!-- Question Bank -->
+    <!-- Recent Assignment Submissions -->
     <div class="col-md-6 mb-4">
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Question Bank</h5>
-                <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Create Question</a>
+                <h5 class="mb-0">Recent Assignment Submissions</h5>
+                <a href="{% url 'assignment_list' %}" class="btn btn-sm btn-primary">View All</a>
             </div>
             <div class="card-body">
-                {% if question_stats %}
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <h3>{{ question_stats.total }}</h3>
-                            <small class="text-muted">Total Questions</small>
-                        </div>
-                        <div class="col-4">
-                            <h3>{{ question_stats.multiple_choice }}</h3>
-                            <small class="text-muted">Multiple Choice</small>
-                        </div>
-                        <div class="col-4">
-                            <h3>{{ question_stats.other }}</h3>
-                            <small class="text-muted">Other Types</small>
-                        </div>
-                    </div>
-                    <div class="text-center mt-3">
-                        <a href="{% url 'question_list' %}" class="btn btn-outline-primary">Manage Questions</a>
+                {% if recent_submissions %}
+                    <div class="list-group">
+                        {% for submission in recent_submissions %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1">{{ submission.student.get_full_name|default:submission.student.username }}</h6>
+                                    <small class="text-muted">{{ submission.submitted_at|date:"M d, Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ submission.assignment.title }}</p>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="badge {% if submission.status == 'submitted' %}bg-primary{% elif submission.status == 'graded' %}bg-success{% elif submission.status == 'late' %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ submission.get_status_display }}
+                                    </span>
+                                    <a href="{% url 'grade_submission' submission.id %}" class="btn btn-sm btn-primary">
+                                        {% if submission.status == 'graded' %}
+                                            View Graded
+                                        {% else %}
+                                            Grade Now
+                                        {% endif %}
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                 {% else %}
                     <div class="text-center py-4">
-                        <p>No questions in the bank yet.</p>
-                        <a href="{% url 'question_create' %}" class="btn btn-primary">Create First Question</a>
+                        <p>No recent assignment submissions.</p>
+                        <p class="text-muted">When students submit assignments, they will appear here.</p>
+                        {% if assignments %}
+                            <p>To view all assignments, click "View All" above.</p>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>
