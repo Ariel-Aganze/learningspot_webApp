@@ -1,6 +1,41 @@
 {% extends 'base.html' %}
 
+{% load custom_filters %}
+
+
 {% block title %}Teacher Dashboard - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .pagination-mini {
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .pagination-mini .page-link {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .section-paginator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 15px;
+    }
+    
+    .section-paginator button {
+        padding: 2px 8px;
+        margin: 0 3px;
+        font-size: 0.8rem;
+    }
+    
+    .section-paginator span {
+        margin: 0 5px;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <!-- Error message section at the top of the dashboard -->
@@ -38,6 +73,111 @@
     </div>
 </div>
 
+<!-- Course Materials Management Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Course Materials Management</h5>
+                <a href="{% url 'material_create' %}" class="btn btn-primary">Add New Material</a>
+            </div>
+            <div class="card-body">
+                {% if course_materials %}
+                    <div class="table-responsive">
+                        <table class="table" id="materials-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Type</th>
+                                    <th>Order</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for material in course_materials %}
+                                    <tr class="material-row {% if forloop.counter > 3 %}d-none{% endif %}">
+                                        <td>{{ material.title }}</td>
+                                        <td>{{ material.course.title }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if material.material_type == 'document' %}bg-primary
+                                                {% elif material.material_type == 'video' %}bg-danger
+                                                {% elif material.material_type == 'image' %}bg-success
+                                                {% else %}bg-info{% endif %}">
+                                                {{ material.material_type|title }}
+                                            </span>
+                                        </td>
+                                        <td>{{ material.order }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                {% if material.material_type == 'link' %}
+                                                    <a href="{{ material.external_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                {% elif material.file %}
+                                                    <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                {% endif %}
+                                                <a href="{% url 'material_update' material.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <a href="{% url 'material_delete' material.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if course_materials|length > 3 %}
+                    <div class="section-paginator" id="materials-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="materials-prev" disabled>&laquo;</button>
+                        {% with total=course_materials|length %}
+                        <span><span id="materials-current-page">1</span> / 
+                        <span id="materials-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="materials-next">»</button>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'material_list' %}" class="btn btn-outline-primary">View All Materials</a>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No course materials found. <a href="{% url 'material_create' %}" class="alert-link">Create your first learning material</a>.</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Course-specific materials management -->
+                {% if teacher_courses %}
+                    <hr class="my-4">
+                    <h6 class="mb-3">Manage Materials by Course</h6>
+                    <div class="row">
+                        {% for course in teacher_courses %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ course.title }}</h6>
+                                        <p class="small text-muted">{{ course.materials.count }} materials</p>
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'teacher_course_management' course.slug %}" class="btn btn-sm btn-outline-primary">Manage Course</a>
+                                            <a href="{% url 'material_create_for_course' course.id %}" class="btn btn-sm btn-outline-secondary">Add Material</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Assignment Management Section -->
 <div class="row mb-4">
     <div class="col-12">
@@ -61,8 +201,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for assignment in assignments|slice:":5" %}
-                                    <tr>
+                                {% for assignment in assignments %}
+                                    <tr class="assignment-row {% if forloop.counter > 3 %}d-none{% endif %}">
                                         <td>{{ assignment.title }}</td>
                                         <td>{{ assignment.course.title }}</td>
                                         <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
@@ -92,6 +232,24 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    {% if assignments|length > 3 %}
+                    <div class="section-paginator" id="assignments-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="assignments-prev" disabled>&laquo;</button>
+                        {% with total=assignments|length %}
+                        <span><span id="assignments-current-page">1</span> / 
+                        <span id="assignments-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="assignments-next">»</button>
+                    </div>
+                    {% endif %}
+                    
                     <div class="text-center mt-3">
                         <a href="{% url 'assignment_list' %}" class="btn btn-outline-primary">View All Assignments</a>
                     </div>
@@ -143,7 +301,7 @@
                             </thead>
                             <tbody>
                                 {% for student_profile in assigned_students %}
-                                    <tr>
+                                    <tr class="student-row {% if forloop.counter > 3 %}d-none{% endif %}">
                                         <td>{{ student_profile.user.get_full_name|default:student_profile.user.username }}</td>
                                         <td>{{ student_profile.user.email }}</td>
                                         <td>
@@ -168,6 +326,24 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    {% if assigned_students|length > 3 %}
+                    <div class="section-paginator" id="students-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="students-prev" disabled>&laquo;</button>
+                        {% with total=assigned_students|length %}
+                        <span><span id="students-current-page">1</span> / 
+                        <span id="students-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="students-next">»</button>
+                    </div>
+                    {% endif %}
+                    
                 {% else %}
                     <div class="text-center py-4">
                         <p>You don't have any assigned students yet.</p>
@@ -200,7 +376,7 @@
                             </thead>
                             <tbody>
                                 {% for timesheet in confirmed_timesheets %}
-                                    <tr>
+                                    <tr class="timesheet-row {% if forloop.counter > 3 %}d-none{% endif %}">
                                         <td>{{ timesheet.student.get_full_name|default:timesheet.student.username }}</td>
                                         <td>{{ timesheet.updated_at|date:"M d, Y" }}</td>
                                         <td>
@@ -222,6 +398,24 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    {% if confirmed_timesheets|length > 3 %}
+                    <div class="section-paginator" id="timesheets-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="timesheets-prev" disabled>&laquo;</button>
+                        {% with total=confirmed_timesheets|length %}
+                        <span><span id="timesheets-current-page">1</span> / 
+                        <span id="timesheets-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="timesheets-next">»</button>
+                    </div>
+                    {% endif %}
+                    
                 {% else %}
                     <div class="text-center py-4">
                         <p>No confirmed timesheets yet.</p>
@@ -302,7 +496,7 @@
                 {% if recent_attempts %}
                     <div class="list-group">
                         {% for attempt in recent_attempts %}
-                            <div class="list-group-item">
+                            <div class="list-group-item quiz-attempt-item {% if forloop.counter > 5 %}d-none{% endif %}">
                                 <div class="d-flex justify-content-between">
                                     <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
                                     <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
@@ -318,6 +512,23 @@
                             </div>
                         {% endfor %}
                     </div>
+                    
+                    {% if recent_attempts|length > 5 %}
+                    <div class="section-paginator" id="quiz-attempts-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-prev" disabled>&laquo;</button>
+                        {% with total=recent_attempts|length %}
+                        <span><span id="quiz-attempts-current-page">1</span> / 
+                        <span id="quiz-attempts-total-pages">
+                            {% if total|divisibleby:5 %}
+                                {{ total|dividedby:5 }}
+                            {% else %}
+                                {{ total|add:4|dividedby:5 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-next">»</button>
+                    </div>
+                    {% endif %}
                 {% elif not recent_attempts and assigned_students %}
                     <div class="text-center py-4">
                         <p>No quiz submissions yet from your students.</p>
@@ -349,7 +560,7 @@
                 {% if recent_submissions %}
                     <div class="list-group">
                         {% for submission in recent_submissions %}
-                            <div class="list-group-item">
+                            <div class="list-group-item submission-item {% if forloop.counter > 3 %}d-none{% endif %}">
                                 <div class="d-flex justify-content-between">
                                     <h6 class="mb-1">{{ submission.student.get_full_name|default:submission.student.username }}</h6>
                                     <small class="text-muted">{{ submission.submitted_at|date:"M d, Y" }}</small>
@@ -370,6 +581,24 @@
                             </div>
                         {% endfor %}
                     </div>
+                    
+                    {% if recent_submissions|length > 3 %}
+                    <div class="section-paginator" id="submissions-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="submissions-prev" disabled>&laquo;</button>
+                        {% with total=recent_submissions|length %}
+                        <span><span id="submissions-current-page">1</span> / 
+                        <span id="submissions-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="submissions-next">»</button>
+                    </div>
+                    {% endif %}
+                    
                 {% else %}
                     <div class="text-center py-4">
                         <p>No recent assignment submissions.</p>
@@ -394,7 +623,7 @@
                 {% if events %}
                     <div class="list-group">
                         {% for event in events %}
-                            <div class="list-group-item">
+                            <div class="list-group-item event-item {% if forloop.counter > 2 %}d-none{% endif %}">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-1">{{ event.title }}</h6>
                                     <small class="text-muted">{{ event.start_datetime|date:"M d, Y" }} at {{ event.start_datetime|time:"g:i A" }}</small>
@@ -406,6 +635,24 @@
                             </div>
                         {% endfor %}
                     </div>
+                    
+                    {% if events|length > 2 %}
+                    <div class="section-paginator" id="events-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="events-prev" disabled>&laquo;</button>
+                        {% with total=events|length %}
+                        <span><span id="events-current-page">1</span> / 
+                        <span id="events-total-pages">
+                            {% if total|divisibleby:2 %}
+                                {{ total|dividedby:2 }}
+                            {% else %}
+                                {{ total|add:1|dividedby:2 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                                            <button class="btn btn-sm btn-outline-secondary" id="events-next">»</button>
+                    </div>
+                    {% endif %}
+                    
                 {% else %}
                     <div class="text-center py-3">
                         <p>No upcoming classes at the moment.</p>
@@ -498,4 +745,102 @@
         </div>
     </div>
 {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize pagination for each section
+        initPagination('materials', 3);
+        initPagination('assignments', 3);
+        initPagination('students', 3);
+        initPagination('timesheets', 3);
+        initPagination('quiz-attempts', 5);
+        initPagination('submissions', 3);
+        initPagination('events', 2);
+        
+        // Function to initialize pagination for a section
+        function initPagination(sectionId, itemsPerPage) {
+            const prevButton = document.getElementById(`${sectionId}-prev`);
+            const nextButton = document.getElementById(`${sectionId}-next`);
+            const currentPageElement = document.getElementById(`${sectionId}-current-page`);
+            const totalPagesElement = document.getElementById(`${sectionId}-total-pages`);
+            
+            // If any of these elements don't exist, return early
+            if (!prevButton || !nextButton || !currentPageElement || !totalPagesElement) {
+                return;
+            }
+            
+            // Find all rows/items for this section
+            let selector;
+            if (sectionId === 'materials') {
+                selector = '.material-row';
+            } else if (sectionId === 'assignments') {
+                selector = '.assignment-row';
+            } else if (sectionId === 'students') {
+                selector = '.student-row';
+            } else if (sectionId === 'timesheets') {
+                selector = '.timesheet-row';
+            } else if (sectionId === 'quiz-attempts') {
+                selector = '.quiz-attempt-item';
+            } else if (sectionId === 'submissions') {
+                selector = '.submission-item';
+            } else if (sectionId === 'events') {
+                selector = '.event-item';
+            }
+            
+            const items = document.querySelectorAll(selector);
+            if (items.length === 0) return;
+            
+            const totalItems = items.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            let currentPage = 1;
+            
+            // Update total pages display
+            totalPagesElement.textContent = totalPages;
+            
+            // Function to show items for the current page
+            function showCurrentPage() {
+                // Calculate start and end indices
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+                
+                // Hide all items
+                items.forEach(item => {
+                    item.classList.add('d-none');
+                });
+                
+                // Show items for current page
+                for (let i = startIndex; i < endIndex; i++) {
+                    items[i].classList.remove('d-none');
+                }
+                
+                // Update current page display
+                currentPageElement.textContent = currentPage;
+                
+                // Update button states
+                prevButton.disabled = currentPage === 1;
+                nextButton.disabled = currentPage === totalPages;
+            }
+            
+            // Add event listeners for prev/next buttons
+            prevButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    showCurrentPage();
+                }
+            });
+            
+            nextButton.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    showCurrentPage();
+                }
+            });
+            
+            // Initialize the first page
+            showCurrentPage();
+        }
+    });
+</script>
 {% endblock %}

@@ -1,7 +1,5 @@
 from django import forms
-from .models import Course, CourseLevel
-from django import forms
-from .models import Assignment, AssignmentSubmission
+from .models import Course, CourseLevel, Assignment, AssignmentSubmission, CourseMaterial
 
 class CourseForm(forms.ModelForm):
     class Meta:
@@ -24,10 +22,6 @@ class CourseLevelForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'price': forms.NumberInput(attrs={'class': 'form-control'})
         }
-
-# Add to courses/forms.py
-
-
 
 class AssignmentForm(forms.ModelForm):
     """Form for teachers to create and edit assignments"""
@@ -91,3 +85,36 @@ class GradeSubmissionForm(forms.ModelForm):
             )
         
         return grade
+
+# New form for course materials
+class CourseMaterialForm(forms.ModelForm):
+    """Form for teachers to add and edit course learning materials"""
+    
+    class Meta:
+        model = CourseMaterial
+        fields = ['course', 'title', 'description', 'material_type', 'file', 'external_url', 'order']
+        widgets = {
+            'course': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'material_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_material_type'}),
+            'file': forms.FileInput(attrs={'class': 'form-control', 'id': 'id_file'}),
+            'external_url': forms.URLInput(attrs={'class': 'form-control', 'id': 'id_external_url'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        material_type = cleaned_data.get('material_type')
+        file = cleaned_data.get('file')
+        external_url = cleaned_data.get('external_url')
+        
+        # Validate based on material type
+        if material_type in ['document', 'video', 'image']:
+            if not file:
+                self.add_error('file', f"A file is required for {material_type} materials.")
+        elif material_type == 'link':
+            if not external_url:
+                self.add_error('external_url', "A URL is required for link materials.")
+        
+        return cleaned_data

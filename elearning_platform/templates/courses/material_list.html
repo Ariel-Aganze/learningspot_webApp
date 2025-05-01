@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Materials - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ title }}</h1>
+        <p class="lead">Manage learning materials for your courses</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if course %}
+            <a href="{% url 'material_create_for_course' course.id %}" class="btn btn-primary">Add New Material</a>
+            <a href="{% url 'teacher_course_management' course.slug %}" class="btn btn-outline-secondary">Back to Course</a>
+        {% else %}
+            <a href="{% url 'material_create' %}" class="btn btn-primary">Add New Material</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Learning Materials</h5>
+            </div>
+            <div class="card-body">
+                {% if materials %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    {% if not course %}
+                                        <th>Course</th>
+                                    {% endif %}
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Order</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for material in materials %}
+                                    <tr>
+                                        {% if not course %}
+                                            <td>{{ material.course.title }}</td>
+                                        {% endif %}
+                                        <td>{{ material.title }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if material.material_type == 'document' %}bg-primary
+                                                {% elif material.material_type == 'video' %}bg-danger
+                                                {% elif material.material_type == 'image' %}bg-success
+                                                {% else %}bg-info{% endif %}">
+                                                {{ material.material_type|title }}
+                                            </span>
+                                        </td>
+                                        <td>{{ material.order }}</td>
+                                        <td>{{ material.description|truncatechars:50 }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                {% if material.material_type == 'link' %}
+                                                    <a href="{{ material.external_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                {% elif material.file %}
+                                                    <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                {% endif %}
+                                                <a href="{% url 'material_update' material.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <a href="{% url 'material_delete' material.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No learning materials found. 
+                        {% if course %}
+                            <a href="{% url 'material_create_for_course' course.id %}" class="alert-link">Add your first material</a>.
+                        {% else %}
+                            <a href="{% url 'material_create' %}" class="alert-link">Add your first material</a>.
+                        {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

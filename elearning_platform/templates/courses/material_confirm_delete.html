@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Material - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">Confirm Deletion</h2>
+            </div>
+            <div class="card-body text-center">
+                <p class="mb-4">Are you sure you want to delete the learning material "<strong>{{ material.title }}</strong>"?</p>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> This action cannot be undone!
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    {% if course %}
+                        <input type="hidden" name="course_slug" value="{{ course.slug }}">
+                    {% endif %}
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-danger">Delete Material</button>
+                        {% if course %}
+                            <a href="{% url 'material_list_by_course' course.id %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% else %}
+                            <a href="{% url 'material_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

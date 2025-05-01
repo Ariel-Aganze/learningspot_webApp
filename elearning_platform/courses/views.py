@@ -8,20 +8,19 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from quizzes.models import Quiz, QuizAttempt
 
-from .models import AssignmentSubmission, Course, CourseLevel, CourseProgress
-from .forms import CourseForm, CourseLevelForm
-from accounts.models import PaymentProof, StudentProfile
+from .models import Assignment, AssignmentSubmission, Course, CourseLevel, CourseProgress, CourseMaterial
+from .forms import CourseForm, CourseLevelForm, AssignmentForm, AssignmentSubmissionForm, GradeSubmissionForm, CourseMaterialForm
+from accounts.models import PaymentProof, StudentProfile, User
 from accounts.forms import PaymentProofForm
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.utils import timezone
-from .models import Assignment, AssignmentSubmission
-from .forms import AssignmentForm, AssignmentSubmissionForm, GradeSubmissionForm
 
 def is_admin(user):
     return user.is_staff or user.is_superuser
+
+def is_teacher(user):
+    return user.user_type == 'teacher'
+
+def is_teacher_or_admin(user):
+    return user.user_type == 'teacher' or user.is_staff or user.is_superuser
 
 def course_list(request):
     courses = Course.objects.filter(is_active=True)
@@ -165,7 +164,6 @@ def course_detail_by_id(request, course_id):
         'levels': levels
     })
 
-# courses/views.py
 @login_required
 def student_course_dashboard(request, slug):
     course = get_object_or_404(Course, slug=slug, is_active=True)
@@ -241,7 +239,6 @@ def student_course_dashboard(request, slug):
     
     return render(request, 'courses/student_course_dashboard.html', context)
 
-# courses/views.py
 @login_required
 @user_passes_test(lambda u: u.user_type == 'teacher')
 def teacher_course_management(request, slug):
@@ -277,11 +274,188 @@ def teacher_course_management(request, slug):
     
     return render(request, 'courses/teacher_course_management.html', context)
 
+# Course Materials Management Views
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def material_list(request, course_id=None):
+    """View for listing course materials, can be filtered by course_id"""
+    
+    if course_id:
+        course = get_object_or_404(Course, id=course_id)
+        materials = CourseMaterial.objects.filter(course=course).order_by('order', 'title')
+        title = f"Materials for {course.title}"
+    else:
+        # For admin/teachers, show materials for courses they can access
+        if request.user.is_staff or request.user.is_superuser:
+            # Admins can see all materials
+            materials = CourseMaterial.objects.all().order_by('course__title', 'order', 'title')
+        else:
+            # Teachers can see materials for courses with their assigned students
+            student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+            student_ids = student_profiles.values_list('user_id', flat=True)
+            
+            # Get courses that have students assigned to this teacher
+            course_ids = set()
+            for student_id in student_ids:
+                student_payments = PaymentProof.objects.filter(
+                    user_id=student_id, 
+                    status='approved'
+                )
+                course_ids.update(student_payments.values_list('course_id', flat=True))
+            
+            materials = CourseMaterial.objects.filter(course_id__in=course_ids).order_by('course__title', 'order', 'title')
+        
+        title = "All Course Materials"
+        course = None
+    
+    context = {
+        'materials': materials,
+        'title': title,
+        'course': course
+    }
+    
+    return render(request, 'courses/material_list.html', context)
 
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def material_create(request, course_id=None):
+    """View for creating a new course material"""
+    
+    # If course_id is provided, pre-select that course
+    initial_data = {}
+    if course_id:
+        course = get_object_or_404(Course, id=course_id)
+        initial_data = {'course': course}
+    
+    if request.method == 'POST':
+        form = CourseMaterialForm(request.POST, request.FILES)
+        if form.is_valid():
+            material = form.save()
+            messages.success(request, "Learning material created successfully!")
+            
+            # Redirect back to course management if we came from there
+            if course_id:
+                return redirect('teacher_course_management', slug=material.course.slug)
+            else:
+                return redirect('material_list')
+    else:
+        form = CourseMaterialForm(initial=initial_data)
+    
+    # Filter course choices for teachers
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Get courses where the teacher has assigned students
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        course_ids = set()
+        for student_id in student_ids:
+            student_payments = PaymentProof.objects.filter(
+                user_id=student_id, 
+                status='approved'
+            )
+            course_ids.update(student_payments.values_list('course_id', flat=True))
+        
+        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+    
+    context = {
+        'form': form,
+        'title': 'Add Learning Material',
+        'course_id': course_id
+    }
+    
+    return render(request, 'courses/material_form.html', context)
 
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def material_update(request, material_id):
+    """View for updating an existing course material"""
+    material = get_object_or_404(CourseMaterial, id=material_id)
+    
+    # For teachers, check if they have access to this course
+    if not (request.user.is_staff or request.user.is_superuser):
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        student_has_course = PaymentProof.objects.filter(
+            user_id__in=student_ids,
+            course=material.course,
+            status='approved'
+        ).exists()
+        
+        if not student_has_course:
+            messages.error(request, "You don't have permission to edit this material.")
+            return redirect('teacher_dashboard')
+    
+    if request.method == 'POST':
+        form = CourseMaterialForm(request.POST, request.FILES, instance=material)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Learning material updated successfully!")
+            return redirect('material_list', course_id=material.course.id)
+    else:
+        form = CourseMaterialForm(instance=material)
+    
+    # Filter course choices for teachers
+    if not (request.user.is_staff or request.user.is_superuser):
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        course_ids = set()
+        for student_id in student_ids:
+            student_payments = PaymentProof.objects.filter(
+                user_id=student_id, 
+                status='approved'
+            )
+            course_ids.update(student_payments.values_list('course_id', flat=True))
+        
+        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+    
+    context = {
+        'form': form,
+        'material': material,
+        'title': 'Update Learning Material'
+    }
+    
+    return render(request, 'courses/material_form.html', context)
 
-def is_teacher(user):
-    return user.user_type == 'teacher'
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def material_delete(request, material_id):
+    """View for deleting a course material"""
+    material = get_object_or_404(CourseMaterial, id=material_id)
+    course = material.course
+    
+    # For teachers, check if they have access to this course
+    if not (request.user.is_staff or request.user.is_superuser):
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        student_has_course = PaymentProof.objects.filter(
+            user_id__in=student_ids,
+            course=course,
+            status='approved'
+        ).exists()
+        
+        if not student_has_course:
+            messages.error(request, "You don't have permission to delete this material.")
+            return redirect('teacher_dashboard')
+    
+    if request.method == 'POST':
+        material.delete()
+        messages.success(request, "Learning material deleted successfully!")
+        
+        # Redirect to course management if we have a slug
+        if 'course_slug' in request.POST:
+            return redirect('teacher_course_management', slug=request.POST['course_slug'])
+        else:
+            return redirect('material_list', course_id=course.id)
+    
+    context = {
+        'material': material,
+        'course': course
+    }
+    
+    return render(request, 'courses/material_confirm_delete.html', context)
 
 # Teacher views for assignments
 @login_required

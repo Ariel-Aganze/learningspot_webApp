@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h2 class="text-center mb-0">{{ title }}</h2>
+                {% if course_id %}
+                <p class="text-center text-muted">Adding material to specific course</p>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.course|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.material_type|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.order|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    {{ form.description|as_crispy_field }}
+                    
+                    <!-- File upload field (for document, image, video) -->
+                    <div id="file-field" class="mb-3">
+                        {{ form.file|as_crispy_field }}
+                        <small class="form-text text-muted">
+                            Upload files appropriate for the material type:<br>
+                            - Document: PDF, DOC, DOCX, etc.<br>
+                            - Image: JPG, PNG, GIF, etc.<br>
+                            - Video: MP4, AVI, MOV, etc.
+                        </small>
+                    </div>
+                    
+                    <!-- External URL field (for links) -->
+                    <div id="url-field" class="mb-3">
+                        {{ form.external_url|as_crispy_field }}
+                        <small class="form-text text-muted">
+                            Provide a valid URL for external resources like websites, videos, etc.
+                        </small>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary">Save Material</button>
+                        {% if course_id %}
+                            <a href="{% url 'material_list_by_course' course_id %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% else %}
+                            <a href="{% url 'material_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const materialTypeSelect = document.getElementById('id_material_type');
+        const fileField = document.getElementById('file-field');
+        const urlField = document.getElementById('url-field');
+        
+        // Function to toggle fields based on material type
+        function toggleFields() {
+            const materialType = materialTypeSelect.value;
+            
+            if (materialType === 'document' || materialType === 'image' || materialType === 'video') {
+                fileField.style.display = 'block';
+                urlField.style.display = 'none';
+            } else if (materialType === 'link') {
+                fileField.style.display = 'none';
+                urlField.style.display = 'block';
+            } else {
+                // Default case
+                fileField.style.display = 'block';
+                urlField.style.display = 'block';
+            }
+        }
+        
+        // Initial toggle based on current selection
+        toggleFields();
+        
+        // Listen for changes to material type
+        materialTypeSelect.addEventListener('change', toggleFields);
+    });
+</script>
+{% endblock %}

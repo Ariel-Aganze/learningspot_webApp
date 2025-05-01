@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage {{ course.title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ course.title }}</h1>
+        <p class="lead">Manage course materials, assignments, and quizzes</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <ul class="nav nav-tabs card-header-tabs" id="courseManagementTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">Assignments</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes" type="button" role="tab">Quizzes</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab">Students</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="courseManagementContent">
+                    <!-- Learning Materials Tab -->
+                    <div class="tab-pane fade show active" id="materials" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h4>Course Learning Materials</h4>
+                            <a href="{% url 'material_create_for_course' course.id %}" class="btn btn-primary">Add New Material</a>
+                        </div>
+                        
+                        {% if materials %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Type</th>
+                                            <th>Order</th>
+                                            <th>Description</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for material in materials %}
+                                            <tr>
+                                                <td>{{ material.title }}</td>
+                                                <td>
+                                                    <span class="badge 
+                                                        {% if material.material_type == 'document' %}bg-primary
+                                                        {% elif material.material_type == 'video' %}bg-danger
+                                                        {% elif material.material_type == 'image' %}bg-success
+                                                        {% else %}bg-info{% endif %}">
+                                                        {{ material.material_type|title }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ material.order }}</td>
+                                                <td>{{ material.description|truncatechars:50 }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        {% if material.material_type == 'link' %}
+                                                            <a href="{{ material.external_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                        {% elif material.file %}
+                                                            <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                        {% endif %}
+                                                        <a href="{% url 'material_update' material.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                        <a href="{% url 'material_delete' material.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{% url 'material_list_by_course' course.id %}" class="btn btn-outline-primary">Manage All Materials</a>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No learning materials found for this course. <a href="{% url 'material_create_for_course' course.id %}" class="alert-link">Add your first material</a>.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Assignments Tab -->
+                    <div class="tab-pane fade" id="assignments" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h4>Course Assignments</h4>
+                            <a href="{% url 'assignment_create' %}" class="btn btn-primary">Add New Assignment</a>
+                        </div>
+                        
+                        {% if assignments %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Points</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for assignment in assignments %}
+                                            <tr>
+                                                <td>{{ assignment.title }}</td>
+                                                <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                                                <td>
+                                                    {% if assignment.status == 'published' %}
+                                                        <span class="badge bg-success">Published</span>
+                                                    {% elif assignment.status == 'draft' %}
+                                                        <span class="badge bg-secondary">Draft</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Archived</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ assignment.points }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{% url 'assignment_update' assignment.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                        <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-sm btn-outline-secondary">View Submissions</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No assignments found for this course. <a href="{% url 'assignment_create' %}" class="alert-link">Create your first assignment</a>.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Quizzes Tab -->
+                    <div class="tab-pane fade" id="quizzes" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h4>Course Quizzes</h4>
+                            <a href="{% url 'quiz_create' %}" class="btn btn-primary">Add New Quiz</a>
+                        </div>
+                        
+                        {% if quizzes %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Time Limit</th>
+                                            <th>Passing Score</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for quiz in quizzes %}
+                                            <tr>
+                                                <td>{{ quiz.title }}</td>
+                                                <td>{{ quiz.time_limit }} minutes</td>
+                                                <td>{{ quiz.passing_score }}%</td>
+                                                <td>
+                                                    {% if quiz.is_active %}
+                                                        <span class="badge bg-success">Active</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Inactive</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{% url 'quiz_update' quiz.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                        <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
+                                                        <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-info">View Results</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No quizzes found for this course. <a href="{% url 'quiz_create' %}" class="alert-link">Create your first quiz</a>.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Students Tab -->
+                    <div class="tab-pane fade" id="students" role="tabpanel">
+                        <h4 class="mb-3">Enrolled Students</h4>
+                        
+                        {% if student_profiles %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Level</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for profile in student_profiles %}
+                                            <tr>
+                                                <td>{{ profile.user.get_full_name|default:profile.user.username }}</td>
+                                                <td>{{ profile.user.email }}</td>
+                                                <td>
+                                                    {% if profile.proficiency_level %}
+                                                        <span class="badge bg-primary">{{ profile.proficiency_level|title }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Not determined</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if profile.user.is_active %}
+                                                        <span class="badge bg-success">Active</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Inactive</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'send_timesheet' profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No students are enrolled in this course.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -126,13 +126,14 @@ def student_dashboard(request):
 @user_passes_test(is_teacher)
 def teacher_dashboard(request):
     """
-    Teacher dashboard view with data for confirmed timesheets
+    Teacher dashboard view with data for confirmed timesheets and course materials
     """
     import json
     from django.utils import timezone
     from django.db.models import Q
     from events.models import Event, Timesheet
     from quizzes.models import Quiz, QuizAttempt, QuizAnswer, Question
+    from courses.models import CourseMaterial, Course, Assignment, AssignmentSubmission
     
     # Initialize variables
     assigned_students = []
@@ -140,6 +141,10 @@ def teacher_dashboard(request):
     recent_quizzes = []
     recent_attempts = []
     confirmed_timesheets = []
+    course_materials = []
+    teacher_courses = []
+    recent_submissions = []
+    assignments = []
     error_message = None
     debug_info = {}
     
@@ -170,7 +175,7 @@ def teacher_dashboard(request):
         courses = Course.objects.none()
         course_ids = set()
         
-        # Only process quiz and course data if there are assigned students
+        # Only process data if there are assigned students
         if student_ids:
             # Get courses with assigned students
             for student_id in student_ids:
@@ -189,7 +194,26 @@ def teacher_dashboard(request):
             debug_info['course_ids'] = list(course_ids)
             debug_info['course_count'] = courses.count()
             
-            # Get recent quizzes
+            # Get teacher's courses for the course materials section
+            teacher_courses = courses
+            
+            # Get course materials for courses taught by this teacher
+            course_materials = CourseMaterial.objects.filter(
+                course__in=courses
+            ).select_related('course').order_by('-id')[:5]
+            debug_info['course_materials_count'] = course_materials.count()
+            
+            # Get assignments for these courses
+            assignments = Assignment.objects.filter(
+                course__in=courses
+            ).order_by('-created_at')[:5]
+            
+            # Get submission counts for each assignment
+            for assignment in assignments:
+                assignment.submission_count = assignment.submissions.count()
+                assignment.ungraded_count = assignment.submissions.filter(status='submitted').count()
+            
+            # Get recent quiz information
             if courses.exists():
                 recent_quizzes = Quiz.objects.filter(
                     course__in=courses,
@@ -215,6 +239,12 @@ def teacher_dashboard(request):
                     Q(voice_recording__isnull=False)
                 ).exists()
                 attempt.has_pending_grading = pending_grading
+            
+            # Get recent assignment submissions
+            recent_submissions = AssignmentSubmission.objects.filter(
+                assignment__course__in=courses,
+                student_id__in=student_ids
+            ).select_related('student', 'assignment').order_by('-submitted_at')[:5]
     
         # Calculate quiz and question statistics
         quiz_stats, question_stats = calculate_quiz_stats(student_ids, courses)
@@ -237,7 +267,11 @@ def teacher_dashboard(request):
         'question_stats': question_stats if 'question_stats' in locals() else {'total': 0, 'multiple_choice': 0, 'other': 0},
         'quiz_stats': quiz_stats if 'quiz_stats' in locals() else {'total_quizzes': 0, 'total_attempts': 0, 'avg_score': 0, 'pass_rate': 0},
         'error_message': error_message,
-        'debug_info': json.dumps(debug_info, indent=2) if request.user.is_staff else None
+        'debug_info': json.dumps(debug_info, indent=2) if request.user.is_staff else None,
+        'course_materials': course_materials,
+        'teacher_courses': teacher_courses,
+        'recent_submissions': recent_submissions,
+        'assignments': assignments
     }
     
     return render(request, 'accounts/teacher_dashboard.html', context)
