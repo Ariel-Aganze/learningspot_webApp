@@ -32,15 +32,15 @@ def is_teacher_or_admin(user):
 @login_required
 @user_passes_test(lambda u: u.user_type == 'teacher')
 def teacher_dashboard(request):
-    from django.db.models import Avg, Count, Q, F
+    from django.db.models import Avg, Count, F, Q
 
     # Get assigned students
-    assigned_students = StudentProfile.objects.filter(assigned_teacher=request.user).select_related('user')
+    assigned_students = StudentProfile.objects.filter(assigned_teacher=request.user)
     
-    # Get all active courses
+    # Get all courses (since there's no direct teacher-course relationship in your models)
     courses = Course.objects.filter(is_active=True)
     
-    # Get recent quizzes
+    # Get recent quizzes across all courses
     recent_quizzes = Quiz.objects.filter(
         course__in=courses,
         is_active=True
@@ -49,12 +49,8 @@ def teacher_dashboard(request):
     # Get student IDs assigned to this teacher
     student_ids = list(assigned_students.values_list('user_id', flat=True))
     
-    # Initialize variables to avoid template errors
+    # Only get attempts if there are assigned students
     recent_attempts = []
-    question_stats = {'total': 0, 'multiple_choice': 0, 'other': 0}
-    quiz_stats = {'total_quizzes': 0, 'total_attempts': 0, 'avg_score': 0, 'pass_rate': 0}
-    
-    # Calculate stats only if there are students assigned to this teacher
     if student_ids:
         # Get recent quiz attempts from assigned students
         recent_attempts = QuizAttempt.objects.filter(
@@ -64,25 +60,30 @@ def teacher_dashboard(request):
         
         # Add a flag for each attempt to indicate if it has submissions that need grading
         for attempt in recent_attempts:
-            # Check if this attempt has any answers that need manual grading
-            pending_grading = (
-                QuizAnswer.objects.filter(
-                    attempt=attempt,
-                    text_answer__isnull=False
-                ).exists() or 
-                QuizAnswer.objects.filter(
-                    attempt=attempt,
-                    file_answer__isnull=False
-                ).exists() or 
-                QuizAnswer.objects.filter(
-                    attempt=attempt,
-                    voice_recording__isnull=False
-                ).exists()
-            )
+            pending_grading = False
+            try:
+                pending_grading = (
+                    QuizAnswer.objects.filter(
+                        attempt=attempt,
+                        text_answer__isnull=False
+                    ).exists() or 
+                    QuizAnswer.objects.filter(
+                        attempt=attempt,
+                        file_answer__isnull=False
+                    ).exists() or 
+                    QuizAnswer.objects.filter(
+                        attempt=attempt,
+                        voice_recording__isnull=False
+                    ).exists()
+                )
+            except Exception as e:
+                print(f"Error checking pending grading: {e}")
+            
             attempt.has_pending_grading = pending_grading
     
     # Question stats - count questions across all courses
     questions = Question.objects.filter(course__in=courses)
+    
     question_stats = {
         'total': questions.count(),
         'multiple_choice': questions.filter(question_type='multiple_choice').count(),
@@ -90,35 +91,37 @@ def teacher_dashboard(request):
     }
     
     # Quiz stats
-    total_quizzes = Quiz.objects.filter(course__in=courses).count()
-    
-    # Calculate attempts stats
-    attempts = QuizAttempt.objects.filter(
-        user_id__in=student_ids,
-        status__in=['completed', 'timed_out']
-    )
-    
-    total_attempts = attempts.count()
-    avg_score = 0
-    pass_rate = 0
-    
-    if total_attempts > 0:
-        avg_score = attempts.aggregate(avg=Avg('score'))['avg'] or 0
-        
-        # Count passed attempts (those with score >= passing_score)
-        passed_attempts = 0
-        for attempt in attempts:
-            if attempt.score >= attempt.quiz.passing_score:
-                passed_attempts += 1
-        
-        pass_rate = (passed_attempts / total_attempts) * 100 if total_attempts > 0 else 0
-    
     quiz_stats = {
-        'total_quizzes': total_quizzes,
-        'total_attempts': total_attempts,
-        'avg_score': avg_score,
-        'pass_rate': pass_rate
+        'total_quizzes': Quiz.objects.filter(course__in=courses).count(),
+        'total_attempts': 0,
+        'avg_score': 0,
+        'pass_rate': 0
     }
+    
+    # Only calculate stats if there are assigned students
+    if student_ids:
+        attempts = QuizAttempt.objects.filter(
+            user_id__in=student_ids,
+            status__in=['completed', 'timed_out']
+        )
+        
+        # Count attempts
+        total_attempts = attempts.count()
+        quiz_stats['total_attempts'] = total_attempts
+        
+        # Calculate average score
+        if total_attempts > 0:
+            avg_score = attempts.aggregate(avg_score=Avg('score'))['avg_score'] or 0
+            quiz_stats['avg_score'] = avg_score
+            
+            # Calculate pass rate
+            passed_attempts = 0
+            for attempt in attempts:
+                if attempt.score >= attempt.quiz.passing_score:
+                    passed_attempts += 1
+            
+            if total_attempts > 0:
+                quiz_stats['pass_rate'] = (passed_attempts / total_attempts) * 100
     
     context = {
         'assigned_students': assigned_students,

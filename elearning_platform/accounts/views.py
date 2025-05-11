@@ -5,11 +5,12 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Q
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
-from courses.models import Course, CourseProgress
+from courses.models import Assignment, Course, CourseMaterial, CourseProgress
 from events.forms import EventForm
 from events.models import TimeOption
-
+ 
 from .models import User, StudentProfile, PaymentProof
 from .forms import (
     UserRegisterForm, 
@@ -279,17 +280,75 @@ def teacher_dashboard(request):
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
-    pending_payments = PaymentProof.objects.filter(status='pending')
-    students = User.objects.filter(user_type='student')
-    teachers = User.objects.filter(user_type='teacher')
-    organizations = User.objects.filter(is_organization=True)
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    # Get all data with proper ordering
+    pending_payments = PaymentProof.objects.filter(status='pending').order_by('-submitted_at')
+    students = User.objects.filter(user_type='student').order_by('-date_joined')
+    teachers = User.objects.filter(user_type='teacher').order_by('-date_joined')
+    organizations = User.objects.filter(is_organization=True).order_by('-date_joined')
     
-    return render(request, 'accounts/admin_dashboard.html', {
-        'pending_payments': pending_payments,
-        'students': students,
-        'teachers': teachers,
-        'organizations': organizations
-    })
+    # Get assignments data with submission counts
+    assignments = Assignment.objects.all().order_by('-created_at')
+    for assignment in assignments:
+        assignment.submission_count = assignment.submissions.count()
+        assignment.ungraded_count = assignment.submissions.filter(status='submitted').count()
+    
+    # Get materials data
+    materials = CourseMaterial.objects.all().order_by('course__title', 'order')
+    
+    # Pagination - 5 items per page for each tab
+    paginator_payments = Paginator(pending_payments, 5)
+    paginator_students = Paginator(students, 5)
+    paginator_teachers = Paginator(teachers, 5)
+    paginator_organizations = Paginator(organizations, 5)
+    paginator_assignments = Paginator(assignments, 5)
+    paginator_materials = Paginator(materials, 5)
+    
+    # Get page numbers from request with correct parameter names
+    page_payments = request.GET.get('pending_page', 1)
+    page_students = request.GET.get('students_page', 1)
+    page_teachers = request.GET.get('teachers_page', 1)
+    page_organizations = request.GET.get('organizations_page', 1)
+    page_assignments = request.GET.get('assignments_page', 1)
+    page_materials = request.GET.get('materials_page', 1)
+    
+    # Get the paginated data with error handling
+    def get_paginated_page(paginator, page_num):
+        try:
+            return paginator.page(page_num)
+        except PageNotAnInteger:
+            return paginator.page(1)
+        except EmptyPage:
+            return paginator.page(paginator.num_pages)
+    
+    pending_payments_page = get_paginated_page(paginator_payments, page_payments)
+    students_page = get_paginated_page(paginator_students, page_students)
+    teachers_page = get_paginated_page(paginator_teachers, page_teachers)
+    organizations_page = get_paginated_page(paginator_organizations, page_organizations)
+    assignments_page = get_paginated_page(paginator_assignments, page_assignments)
+    materials_page = get_paginated_page(paginator_materials, page_materials)
+    
+    # Context with paginated data
+    context = {
+        # Original querysets (not needed anymore since we're using paginated versions)
+        # 'pending_payments': pending_payments,
+        # 'students': students,
+        # 'teachers': teachers,
+        # 'organizations': organizations,
+        # 'assignments': assignments,
+        # 'materials': materials,
+        
+        # Paginated versions
+        'pending_payments': pending_payments_page,  # Using same name as template expects
+        'students': students_page,
+        'teachers': teachers_page,
+        'organizations': organizations_page,
+        'assignments': assignments_page,
+        'materials': materials_page,
+    }
+    
+    return render(request, 'accounts/admin_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_admin)

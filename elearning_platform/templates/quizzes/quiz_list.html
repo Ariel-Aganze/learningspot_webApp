@@ -100,6 +100,62 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Pagination for Quizzes -->
+                    {% if quizzes.has_other_pages %}
+                    <nav aria-label="Quiz list pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if quizzes.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ quizzes.previous_page_number }}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link" aria-hidden="true">&laquo;</span>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in quizzes.paginator.page_range %}
+                                {% if quizzes.number == i %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                                {% elif i > quizzes.number|add:'-3' and i < quizzes.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ i }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if quizzes.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ quizzes.next_page_number }}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ quizzes.paginator.num_pages }}{% if request.GET.course %}&course={{ request.GET.course }}{% endif %}{% if request.GET.active %}&active={{ request.GET.active }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link" aria-hidden="true">&raquo;</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                        <div class="text-center mt-2 text-muted">
+                            Page {{ quizzes.number }} of {{ quizzes.paginator.num_pages }} ({{ quizzes.paginator.count }} total quizzes)
+                        </div>
+                    </nav>
+                    {% endif %}
                 {% else %}
                     <div class="alert alert-info">
                         <p class="mb-0">No quizzes found. {% if request.GET %}Try different filter options or {% endif %}<a href="{% url 'quiz_create' %}" class="alert-link">create a new quiz</a>.</p>

@@ -13,14 +13,27 @@ from .forms import CourseForm, CourseLevelForm, AssignmentForm, AssignmentSubmis
 from accounts.models import PaymentProof, StudentProfile, User
 from accounts.forms import PaymentProofForm
 
+# Updated permission helper functions
+
 def is_admin(user):
+    """Check if user is admin or superuser"""
     return user.is_staff or user.is_superuser
 
 def is_teacher(user):
+    """Check if user is a teacher"""
     return user.user_type == 'teacher'
 
 def is_teacher_or_admin(user):
+    """Check if user is either teacher or admin/superuser"""
     return user.user_type == 'teacher' or user.is_staff or user.is_superuser
+
+def is_student(user):
+    """Check if user is a student"""
+    return user.user_type == 'student'
+
+def is_active_user(user):
+    """Basic check to ensure user is authenticated and active"""
+    return user.is_authenticated and user.is_active
 
 def course_list(request):
     courses = Course.objects.filter(is_active=True)
@@ -459,24 +472,28 @@ def material_delete(request, material_id):
 
 # Teacher views for assignments
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
 def assignment_list(request):
-    """View for teachers to see all assignments they can manage"""
-    # Get all courses where the teacher has assigned students
-    teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
-    student_ids = teacher_students.values_list('user_id', flat=True)
-    
-    # Get courses for these students
-    course_ids = set()
-    for student_id in student_ids:
-        student_payments = PaymentProof.objects.filter(
-            user_id=student_id, 
-            status='approved'
-        )
-        course_ids.update(student_payments.values_list('course_id', flat=True))
-    
-    # Get assignments for these courses
-    assignments = Assignment.objects.filter(course_id__in=course_ids).order_by('-created_at')
+    """View for teachers and admins to see all assignments they can manage"""
+    # For admins, show all assignments
+    if request.user.is_staff or request.user.is_superuser:
+        assignments = Assignment.objects.all().order_by('-created_at')
+    else:
+        # For teachers, show only assignments for their courses
+        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = teacher_students.values_list('user_id', flat=True)
+        
+        # Get courses for these students
+        course_ids = set()
+        for student_id in student_ids:
+            student_payments = PaymentProof.objects.filter(
+                user_id=student_id, 
+                status='approved'
+            )
+            course_ids.update(student_payments.values_list('course_id', flat=True))
+        
+        # Get assignments for these courses
+        assignments = Assignment.objects.filter(course_id__in=course_ids).order_by('-created_at')
     
     # Get submission counts for each assignment
     for assignment in assignments:
@@ -490,9 +507,9 @@ def assignment_list(request):
     return render(request, 'courses/assignment_list.html', context)
 
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
 def assignment_create(request):
-    """View for teachers to create a new assignment"""
+    """View for teachers and admins to create a new assignment"""
     if request.method == 'POST':
         form = AssignmentForm(request.POST)
         if form.is_valid():
@@ -502,25 +519,77 @@ def assignment_create(request):
     else:
         form = AssignmentForm()
     
+    # For teachers, limit course choices to courses they teach
+    if not (request.user.is_staff or request.user.is_superuser):
+        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = teacher_students.values_list('user_id', flat=True)
+        
+        course_ids = set()
+        for student_id in student_ids:
+            student_payments = PaymentProof.objects.filter(
+                user_id=student_id, 
+                status='approved'
+            )
+            course_ids.update(student_payments.values_list('course_id', flat=True))
+        
+        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+    
     return render(request, 'courses/assignment_form.html', {
         'form': form,
         'title': 'Create Assignment'
     })
 
+
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
 def assignment_update(request, assignment_id):
-    """View for teachers to update an existing assignment"""
+    """View for teachers and admins to update an existing assignment"""
     assignment = get_object_or_404(Assignment, id=assignment_id)
+    
+    # Check permissions for teachers (admins can access any assignment)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # For teachers, check if they have any students enrolled in this course
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        student_has_course = PaymentProof.objects.filter(
+            user_id__in=student_ids,
+            course=assignment.course,
+            status='approved'
+        ).exists()
+        
+        if not student_has_course:
+            messages.error(request, "You don't have permission to edit this assignment.")
+            return redirect('teacher_dashboard')
     
     if request.method == 'POST':
         form = AssignmentForm(request.POST, instance=assignment)
         if form.is_valid():
             form.save()
             messages.success(request, "Assignment updated successfully!")
-            return redirect('assignment_list')
+            
+            # Redirect based on user type
+            if request.user.is_staff or request.user.is_superuser:
+                return redirect('assignment_list')
+            else:
+                return redirect('assignment_list')
     else:
         form = AssignmentForm(instance=assignment)
+    
+    # For teachers, limit course choices to courses they teach
+    if not (request.user.is_staff or request.user.is_superuser):
+        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = teacher_students.values_list('user_id', flat=True)
+        
+        course_ids = set()
+        for student_id in student_ids:
+            student_payments = PaymentProof.objects.filter(
+                user_id=student_id, 
+                status='approved'
+            )
+            course_ids.update(student_payments.values_list('course_id', flat=True))
+        
+        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
     
     return render(request, 'courses/assignment_form.html', {
         'form': form,
@@ -529,11 +598,34 @@ def assignment_update(request, assignment_id):
     })
 
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
 def assignment_submissions(request, assignment_id):
-    """View for teachers to see all submissions for an assignment"""
+    """View for teachers and admins to see all submissions for an assignment"""
     assignment = get_object_or_404(Assignment, id=assignment_id)
-    submissions = assignment.submissions.all().select_related('student')
+    
+    # Check permissions for teachers (admins can access any assignment)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # For teachers, check if they have any students enrolled in this course
+        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
+        student_ids = student_profiles.values_list('user_id', flat=True)
+        
+        student_has_course = PaymentProof.objects.filter(
+            user_id__in=student_ids,
+            course=assignment.course,
+            status='approved'
+        ).exists()
+        
+        if not student_has_course:
+            messages.error(request, "You don't have permission to view submissions for this assignment.")
+            return redirect('teacher_dashboard')
+    
+    # Get all submissions or filter by teacher's students for teachers
+    if request.user.is_staff or request.user.is_superuser:
+        submissions = assignment.submissions.all().select_related('student')
+    else:
+        # Get submissions from students assigned to this teacher
+        student_ids = StudentProfile.objects.filter(assigned_teacher=request.user).values_list('user_id', flat=True)
+        submissions = assignment.submissions.filter(student_id__in=student_ids).select_related('student')
     
     return render(request, 'courses/assignment_submissions.html', {
         'assignment': assignment,
@@ -541,16 +633,18 @@ def assignment_submissions(request, assignment_id):
     })
 
 @login_required
-@user_passes_test(is_teacher)
+@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
 def grade_submission(request, submission_id):
-    """View for teachers to grade a specific submission"""
+    """View for teachers and admins to grade a specific submission"""
     submission = get_object_or_404(AssignmentSubmission, id=submission_id)
     assignment = submission.assignment
     
-    # Verify this teacher is assigned to the student
-    if not StudentProfile.objects.filter(user=submission.student, assigned_teacher=request.user).exists():
-        messages.error(request, "You are not authorized to grade this submission.")
-        return redirect('assignment_list')
+    # Check permissions (admins can grade any submission)
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Verify this teacher is assigned to the student
+        if not StudentProfile.objects.filter(user=submission.student, assigned_teacher=request.user).exists():
+            messages.error(request, "You are not authorized to grade this submission.")
+            return redirect('assignment_list')
     
     if request.method == 'POST':
         form = GradeSubmissionForm(request.POST, instance=submission)
