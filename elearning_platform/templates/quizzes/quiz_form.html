@@ -41,9 +41,19 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-{% if request.user.is_staff or request.user.is_superuser %}6{% else %}12{% endif %}">
                             {{ form.is_active|as_crispy_field }}
                         </div>
+                        
+                        {% if request.user.is_staff or request.user.is_superuser %}
+                        <div class="col-md-6">
+                            {{ form.is_placement_test|as_crispy_field }}
+                            <small class="form-text text-muted">Only one quiz per course can be a placement test. Marking this will unmark any existing placement test.</small>
+                        </div>
+                        {% else %}
+                            <!-- Hidden field for teachers to preserve the existing value -->
+                            <input type="hidden" name="is_placement_test" value="{{ form.is_placement_test.value|yesno:'true,false' }}">
+                        {% endif %}
                     </div>
                     
                     <div class="text-center mt-4">

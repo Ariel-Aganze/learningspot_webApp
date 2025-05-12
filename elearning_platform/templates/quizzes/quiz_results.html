@@ -34,23 +34,39 @@
     <div class="col-md-8">
         <div class="card shadow mb-4">
             <div class="card-header bg-white">
-                <h2 class="text-center mb-0">Placement Test Results</h2>
+                <h2 class="text-center mb-0">
+                    {% if attempt.quiz.is_placement_test %}
+                        Placement Test Results
+                    {% else %}
+                        Quiz Results
+                    {% endif %}
+                </h2>
                 <p class="text-center text-muted mb-0">{{ attempt.quiz.title }}</p>
             </div>
             <div class="card-body text-center">
                 <div class="mb-4">
-                    {% if attempt.result == 'beginner' %}
-                        <div class="display-1 text-primary mb-2">Beginner</div>
-                        <p class="lead">You've been placed at the Beginner level.</p>
-                    {% elif attempt.result == 'intermediate' %}
-                        <div class="display-1 text-primary mb-2">Intermediate</div>
-                        <p class="lead">You've been placed at the Intermediate level.</p>
-                    {% elif attempt.result == 'advanced' %}
-                        <div class="display-1 text-primary mb-2">Advanced</div>
-                        <p class="lead">You've been placed at the Advanced level.</p>
+                    {% if attempt.quiz.is_placement_test %}
+                        {% if attempt.result == 'beginner' %}
+                            <div class="display-1 text-primary mb-2">Beginner</div>
+                            <p class="lead">You've been placed at the Beginner level.</p>
+                        {% elif attempt.result == 'intermediate' %}
+                            <div class="display-1 text-primary mb-2">Intermediate</div>
+                            <p class="lead">You've been placed at the Intermediate level.</p>
+                        {% elif attempt.result == 'advanced' %}
+                            <div class="display-1 text-primary mb-2">Advanced</div>
+                            <p class="lead">You've been placed at the Advanced level.</p>
+                        {% else %}
+                            <div class="display-1 text-danger mb-2">Failed</div>
+                            <p class="lead">You did not meet the minimum passing score.</p>
+                        {% endif %}
                     {% else %}
-                        <div class="display-1 text-danger mb-2">Failed</div>
-                        <p class="lead">You did not meet the minimum passing score.</p>
+                        {% if attempt.result == 'passed' %}
+                            <div class="display-1 text-success mb-2">Passed</div>
+                            <p class="lead">Congratulations! You passed the quiz.</p>
+                        {% else %}
+                            <div class="display-1 text-danger mb-2">Failed</div>
+                            <p class="lead">You did not meet the minimum passing score.</p>
+                        {% endif %}
                     {% endif %}
                 </div>
                 
@@ -88,7 +104,11 @@
                 </div>
                 
                 <div class="mt-4">
-                    <p>Your test results and level have been saved. An administrator will assign you to a teacher based on your proficiency level.</p>
+                    {% if attempt.quiz.is_placement_test %}
+                        <p>Your test results and level have been saved. An administrator will assign you to a teacher based on your proficiency level.</p>
+                    {% else %}
+                        <p>Your quiz results have been saved.</p>
+                    {% endif %}
                     <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
                 </div>
             </div>

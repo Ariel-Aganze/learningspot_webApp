@@ -166,6 +166,7 @@ class QuizAttempt(models.Model):
         ('intermediate', 'Intermediate'),
         ('advanced', 'Advanced'),
         ('failed', 'Failed'),
+        ('passed', 'Passed'),  # New option for regular quizzes
     )
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='quiz_attempts')
@@ -184,54 +185,62 @@ class QuizAttempt(models.Model):
         if total_questions == 0:
             return 0
     
-    # Count correctly answered questions
+        # Count correctly answered questions
         correct_answers = self.answers.filter(is_correct=True).count()
     
-    # Get the number of unanswered questions
+        # Get the number of unanswered questions
         answered_questions = self.answers.count()
         unanswered_questions = total_questions - answered_questions
     
-    # Consider unanswered questions as incorrect (score of 0)
+        # Consider unanswered questions as incorrect (score of 0)
         self.score = int((correct_answers / total_questions) * 100)
         return self.score
     
-    def determine_level(self):
+    def determine_result(self):
+        """
+        Determines the result based on quiz type:
+        - For placement tests: Determine level (beginner, intermediate, advanced)
+        - For regular quizzes: Simply pass/fail
+        """
         if self.score < self.quiz.passing_score:
             self.result = 'failed'
-        else:
+            return self.result
+        
+        # For placement tests, determine the proficiency level
+        if self.quiz.is_placement_test:
         # Count answers by difficulty
             beginner_questions = self.answers.filter(question__question__difficulty='beginner').count()
             intermediate_questions = self.answers.filter(question__question__difficulty='intermediate').count()
             advanced_questions = self.answers.filter(question__question__difficulty='advanced').count()
-        
+    
             beginner_correct = self.answers.filter(
-            question__question__difficulty='beginner', 
-            is_correct=True
+                question__question__difficulty='beginner', 
+                is_correct=True
             ).count()
-        
+    
             intermediate_correct = self.answers.filter(
                 question__question__difficulty='intermediate', 
                 is_correct=True
             ).count()
-        
+    
             advanced_correct = self.answers.filter(
-            question__question__difficulty='advanced', 
-            is_correct=True
+                question__question__difficulty='advanced', 
+                is_correct=True
             ).count()
-        
+    
         # Fix: Avoid division by zero
             advanced_percentage = 0
             if advanced_questions > 0:
                 advanced_percentage = advanced_correct / advanced_questions
-            
+        
             intermediate_percentage = 0
             if intermediate_questions > 0:
                 intermediate_percentage = intermediate_correct / intermediate_questions
-            
+        
             beginner_percentage = 0
             if beginner_questions > 0:
                 beginner_percentage = beginner_correct / beginner_questions
-        
+    
         # Determine level based on performance
             if advanced_questions > 0 and advanced_percentage >= 0.7:
                 self.result = 'advanced'
@@ -239,7 +248,10 @@ class QuizAttempt(models.Model):
                 self.result = 'intermediate'
             else:
                 self.result = 'beginner'
-    
+        else:
+        # For regular quizzes, simply mark as passed
+            self.result = 'passed'
+
         return self.result
 
 class QuizAnswer(models.Model):

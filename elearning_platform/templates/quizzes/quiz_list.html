@@ -70,6 +70,7 @@
                                     <th>Passing Score</th>
                                     <th>Status</th>
                                     <th>Questions</th>
+                                    <th>Placement Test</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -89,10 +90,29 @@
                                         </td>
                                         <td>{{ quiz.quiz_questions.count }}</td>
                                         <td>
+                                            {% if quiz.is_placement_test %}
+                                                <span class="badge bg-primary">Placement Test</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Regular Quiz</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             <div class="btn-group">
                                                 <a href="{% url 'quiz_update' quiz.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                                                 <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
                                                 <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-info">View Results</a>
+                                                
+                                                <!-- Only show placement test toggle to admin users -->
+                                                {% if request.user.is_staff or request.user.is_superuser %}
+                                                    <form method="post" action="{% url 'toggle_placement_test' quiz.id %}" class="d-inline">
+                                                        {% csrf_token %}
+                                                        {% if quiz.is_placement_test %}
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to unmark this quiz as placement test?')">Unmark as Placement Test</button>
+                                                        {% else %}
+                                                            <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Are you sure you want to mark this quiz as placement test? This will unmark any existing placement test for this course.')">Mark as Placement Test</button>
+                                                        {% endif %}
+                                                    </form>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>

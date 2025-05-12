@@ -232,13 +232,21 @@ def take_quiz(request, attempt_id):
         attempt.status = 'completed'
         attempt.end_time = timezone.now()
         attempt.calculate_score()
-        attempt.determine_level()
+        
+        # Use determine_result instead of determine_level to handle both placement tests and regular quizzes
+        if hasattr(attempt, 'determine_result'):
+            attempt.determine_result()
+        else:
+            # Fallback to determine_level for backward compatibility
+            attempt.determine_level()
+        
         attempt.save()
         
-        # Update student profile with the determined level
-        student_profile = StudentProfile.objects.get(user=request.user)
-        student_profile.proficiency_level = attempt.result
-        student_profile.save()
+        # Only update student profile if this is a placement test
+        if quiz.is_placement_test:
+            student_profile = StudentProfile.objects.get(user=request.user)
+            student_profile.proficiency_level = attempt.result
+            student_profile.save()
         
         messages.success(request, 'Quiz completed successfully!')
         return redirect('quiz_results', attempt_id=attempt.id)
@@ -382,23 +390,23 @@ def take_quiz(request, attempt_id):
                 answer.is_correct = False
         
         elif question_type in ['short_answer', 'long_answer']:
-    # Process text answers
+            # Process text answers
             text = request.POST.get('text_answer', '')
             if text.strip():
                 try:
-            # Check if an answer already exists
+                    # Check if an answer already exists
                     existing_text_answer = TextAnswer.objects.filter(
                         question=current_question.question,
                         student=request.user
                     ).first()
             
                     if existing_text_answer:
-                # Update the existing text answer
+                        # Update the existing text answer
                         existing_text_answer.text = text
                         existing_text_answer.save()
                         answer.text_answer = existing_text_answer
                     else:
-                # Create a new text answer
+                        # Create a new text answer
                         text_answer = TextAnswer.objects.create(
                             question=current_question.question,
                             student=request.user,
@@ -406,7 +414,7 @@ def take_quiz(request, attempt_id):
                         )
                         answer.text_answer = text_answer
             
-            # Text answers need to be manually graded
+                    # Text answers need to be manually graded
                     answer.is_correct = False
                 except Exception as e:
                     logger.error(f"Error processing text answer: {str(e)}")
@@ -415,24 +423,24 @@ def take_quiz(request, attempt_id):
                 answer.is_correct = False
         
         elif question_type in ['file_upload']:
-    # Process file uploads
+            # Process file uploads
             uploaded_file = request.FILES.get('file_answer')
             if uploaded_file:
                 try:
-            # Check if an answer already exists
+                    # Check if an answer already exists
                     existing_file_answer = FileAnswer.objects.filter(
                         question=current_question.question,
                         student=request.user
                     ).first()
             
                     if existing_file_answer:
-                # Update the existing file answer
+                        # Update the existing file answer
                         existing_file_answer.file = uploaded_file
                         existing_file_answer.file_type = uploaded_file.content_type
                         existing_file_answer.save()
                         answer.file_answer = existing_file_answer
                     else:
-                # Create a new file answer
+                        # Create a new file answer
                         file_answer = FileAnswer.objects.create(
                             question=current_question.question,
                             student=request.user,
@@ -441,7 +449,7 @@ def take_quiz(request, attempt_id):
                         )
                         answer.file_answer = file_answer
             
-            # File uploads need to be manually graded
+                    # File uploads need to be manually graded
                     answer.is_correct = False
                 except Exception as e:
                     logger.error(f"Error processing file upload: {str(e)}")
@@ -450,47 +458,47 @@ def take_quiz(request, attempt_id):
                 answer.is_correct = False
         
         elif question_type == 'voice_record':
-    # Process voice recordings from base64 string
+            # Process voice recordings from base64 string
             voice_data = request.POST.get('file_answer', '')
             if voice_data and voice_data.startswith('data:audio'):
                 try:
-            # Extract base64 part
+                    # Extract base64 part
                     format, base64_data = voice_data.split(';base64,')
-            # Create a ContentFile from the base64 data
+                    # Create a ContentFile from the base64 data
                     from django.core.files.base import ContentFile
                     import base64
             
                     file_data = base64.b64decode(base64_data)
                     file_content = ContentFile(file_data)
             
-            # Create a name for the file
+                    # Create a name for the file
                     import uuid
                     file_name = f"voice_{uuid.uuid4()}.mp3"
             
-            # Check if a voice recording already exists
+                    # Check if a voice recording already exists
                     existing_voice_recording = VoiceRecording.objects.filter(
                         question=current_question.question,
                         student=request.user
                     ).first()
             
                     if existing_voice_recording:
-                # Update the existing voice recording
+                        # Update the existing voice recording
                         existing_voice_recording.audio_file.save(file_name, file_content, save=True)
                         existing_voice_recording.duration = 0  # Reset duration or calculate new one
                         existing_voice_recording.save()
                         answer.voice_recording = existing_voice_recording
                     else:
-                # Create a new voice recording
+                        # Create a new voice recording
                         voice_recording = VoiceRecording.objects.create(
                             question=current_question.question,
                             student=request.user,
                             duration=0  # We don't know the duration
                         )
-                # Save the file to the model
+                        # Save the file to the model
                         voice_recording.audio_file.save(file_name, file_content, save=True)
                         answer.voice_recording = voice_recording
             
-            # Voice recordings need to be manually graded
+                    # Voice recordings need to be manually graded
                     answer.is_correct = False
                 except Exception as e:
                     logger.error(f"Error processing voice recording: {str(e)}")
@@ -524,13 +532,21 @@ def take_quiz(request, attempt_id):
         attempt.status = 'timed_out'
         attempt.end_time = timezone.now()
         attempt.calculate_score()
-        attempt.determine_level()
+        
+        # Use determine_result instead of determine_level to handle both placement tests and regular quizzes
+        if hasattr(attempt, 'determine_result'):
+            attempt.determine_result()
+        else:
+            # Fallback to determine_level for backward compatibility
+            attempt.determine_level()
+        
         attempt.save()
         
-        # Update student profile with the determined level
-        student_profile = StudentProfile.objects.get(user=request.user)
-        student_profile.proficiency_level = attempt.result
-        student_profile.save()
+        # Only update student profile if this is a placement test
+        if quiz.is_placement_test:
+            student_profile = StudentProfile.objects.get(user=request.user)
+            student_profile.proficiency_level = attempt.result
+            student_profile.save()
         
         messages.warning(request, 'Time is up! Your quiz has been submitted automatically.')
         return redirect('quiz_results', attempt_id=attempt.id)
@@ -856,16 +872,24 @@ def quiz_timer_update(request, attempt_id):
                     attempt.status = 'timed_out'
                     attempt.end_time = timezone.now()
                     attempt.calculate_score()
-                    attempt.determine_level()
+                    
+                    # Use determine_result instead of determine_level
+                    if hasattr(attempt, 'determine_result'):
+                        attempt.determine_result()
+                    else:
+                        # Fallback to determine_level for backward compatibility
+                        attempt.determine_level()
+                        
                     attempt.save()
                     
-                    # Update student profile
-                    try:
-                        student_profile = StudentProfile.objects.get(user=request.user)
-                        student_profile.proficiency_level = attempt.result
-                        student_profile.save()
-                    except StudentProfile.DoesNotExist:
-                        pass
+                    # Only update student profile if this is a placement test
+                    if attempt.quiz.is_placement_test:
+                        try:
+                            student_profile = StudentProfile.objects.get(user=request.user)
+                            student_profile.proficiency_level = attempt.result
+                            student_profile.save()
+                        except StudentProfile.DoesNotExist:
+                            pass
                     
                     return JsonResponse({'status': 'timeout', 'redirect': reverse('quiz_results', args=[attempt.id])})
                 
@@ -982,3 +1006,27 @@ def quiz_results_all(request):
     return render(request, 'quizzes/quiz_results_all.html', {
         'attempts': attempts
     })
+
+@login_required
+@user_passes_test(is_admin)  # Changed from is_teacher_or_admin to is_admin
+def toggle_placement_test(request, quiz_id):
+    """View to toggle the placement test status of a quiz - Admin users only"""
+    quiz = get_object_or_404(Quiz, pk=quiz_id)
+    
+    if request.method == 'POST':
+        # Toggle the placement test status
+        if quiz.is_placement_test:
+            # If it was a placement test, just unmark it
+            quiz.is_placement_test = False
+            quiz.save()
+            messages.success(request, f'"{quiz.title}" is no longer marked as a placement test.')
+        else:
+            # If it wasn't a placement test, mark it and unmark any other for this course
+            # This is also handled in the model's save method, but we're being explicit here
+            Quiz.objects.filter(course=quiz.course, is_placement_test=True).update(is_placement_test=False)
+            quiz.is_placement_test = True
+            quiz.save()
+            messages.success(request, f'"{quiz.title}" is now marked as the placement test for {quiz.course.title}.')
+    
+    # Redirect back to the quiz list
+    return redirect('quiz_list')

@@ -19,6 +19,9 @@ urlpatterns = [
     path('questions/<int:quiz_id>/', views.quiz_questions, name='quiz_questions'),
     path('results/<int:quiz_id>/', views.quiz_results_admin, name='quiz_results_admin'),
     
+    # Toggle placement test status
+    path('toggle-placement-test/<int:quiz_id>/', views.toggle_placement_test, name='toggle_placement_test'),
+    
     # Teacher grading views
     path('grade/<int:quiz_id>/', views.grade_submissions, name='grade_submissions'),
     path('grade/answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),

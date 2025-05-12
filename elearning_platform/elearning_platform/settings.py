@@ -115,3 +115,8 @@ LOGOUT_REDIRECT_URL = 'home'
 # Crispy forms settings
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://9570-2c0f-eb68-64d-8500-2530-5f32-e70c-2746.ngrok-free.app',
+    # Add more domains if needed
+]

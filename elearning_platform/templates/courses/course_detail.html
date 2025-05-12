@@ -38,7 +38,7 @@
                     <h6>Registration Process:</h6>
                     <ol>
                         <li>Enroll in the course</li>
-                        <li>Pay for the placement test (${{ course.placement_test_price }})</li>
+                        <li>Pay for the placement test (RWF{{ course.placement_test_price }})</li>
                         <li>Upload payment proof</li>
                         <li>Wait for admin approval</li>
                         <li>Take the placement test</li>
@@ -63,7 +63,7 @@
                             <div class="list-group-item list-group-item-action">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-1">{{ level.get_level_display }}</h6>
-                                    <span class="badge bg-primary rounded-pill">${{ level.price }}</span>
+                                    <span class="badge bg-primary rounded-pill">RWF{{ level.price }}</span>
                                 </div>
                                 <p class="mb-1 small">{{ level.description|truncatewords:15 }}</p>
                                 {% if user.is_staff or user.is_superuser %}
@@ -85,7 +85,7 @@
             </div>
             <div class="card-footer bg-white">
                 <p class="mb-0 text-center">
-                    <small class="text-muted">Placement test fee: ${{ course.placement_test_price }}</small>
+                    <small class="text-muted">Placement test fee: RWF{{ course.placement_test_price }}</small>
                 </p>
             </div>
         </div>

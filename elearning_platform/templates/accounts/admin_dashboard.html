@@ -1,657 +1,657 @@
-{% extends 'base.html' %}
+    {% extends 'base.html' %}
 
-{% block title %}Admin Dashboard - E-Learning Platform{% endblock %}
+    {% block title %}Admin Dashboard - E-Learning Platform{% endblock %}
 
-{% block extra_css %}
-<style>
-    .nav-pills .nav-link.active {
-        background-color: var(--primary-color);
-    }
-    .nav-pills .nav-link {
-        color: #333;
-    }
-    .pagination .page-item.active .page-link {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    .pagination .page-link {
-        color: #333;
-    }
-</style>
-{% endblock %}
+    {% block extra_css %}
+    <style>
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+        .nav-pills .nav-link {
+            color: #333;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .pagination .page-link {
+            color: #333;
+        }
+    </style>
+    {% endblock %}
 
-{% block content %}
+    {% block content %}
 
-<div class="row mb-4">
-    <div class="col-12">
-        <h1>Admin Dashboard</h1>
-        <p class="lead">Welcome back, {{ request.user.first_name|default:request.user.username }}!</p>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Admin Dashboard</h1>
+            <p class="lead">Welcome back, {{ request.user.first_name|default:request.user.username }}!</p>
+        </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="pending-tab" data-bs-toggle="pill" data-bs-target="#pending" type="button" role="tab">Pending Approvals</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="students-tab" data-bs-toggle="pill" data-bs-target="#students" type="button" role="tab">Students</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="teachers-tab" data-bs-toggle="pill" data-bs-target="#teachers" type="button" role="tab">Teachers</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="organizations-tab" data-bs-toggle="pill" data-bs-target="#organizations" type="button" role="tab">Organizations</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="assignments-tab" data-bs-toggle="pill" data-bs-target="#assignments" type="button" role="tab">Assignments</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="materials-tab" data-bs-toggle="pill" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
-            </li>
-        </ul>
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pending-tab" data-bs-toggle="pill" data-bs-target="#pending" type="button" role="tab">Pending Approvals</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="students-tab" data-bs-toggle="pill" data-bs-target="#students" type="button" role="tab">Students</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="teachers-tab" data-bs-toggle="pill" data-bs-target="#teachers" type="button" role="tab">Teachers</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="organizations-tab" data-bs-toggle="pill" data-bs-target="#organizations" type="button" role="tab">Organizations</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="assignments-tab" data-bs-toggle="pill" data-bs-target="#assignments" type="button" role="tab">Assignments</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="materials-tab" data-bs-toggle="pill" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
+                </li>
+            </ul>
 
-        <div class="tab-content" id="adminTabContent">
-            <!-- Pending Approvals Tab -->
-            <div class="tab-pane fade show active" id="pending" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Pending Payment Approvals</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if pending_payments %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Course</th>
-                                        <th>Date Submitted</th>
-                                        <th>Proof</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for payment in pending_payments %}
-                                    <tr>
-                                        <td>{{ payment.user.get_full_name|default:payment.user.username }}</td>
-                                        <td>{{ payment.course.title }}</td>
-                                        <td>{{ payment.submitted_at|date }}</td>
-                                        <td>
-                                            <a href="{{ payment.proof_image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View Proof</a>
-                                        </td>
-                                        <td>
-                                            <form method="post" action="{% url 'payment_approval' payment.id %}" class="d-inline">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="approve">
-                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
-                                            </form>
-                                            <form method="post" action="{% url 'payment_approval' payment.id %}" class="d-inline">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="reject">
-                                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <div class="tab-content" id="adminTabContent">
+                <!-- Pending Approvals Tab -->
+                <div class="tab-pane fade show active" id="pending" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Pending Payment Approvals</h5>
                         </div>
-                        
-                        <!-- Pagination for Pending Approvals -->
-                        {% if pending_payments.has_other_pages %}
-                        <nav aria-label="Pending approvals pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if pending_payments.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?pending_page={{ pending_payments.previous_page_number }}#pending" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in pending_payments.paginator.page_range %}
-                                {% if pending_payments.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?pending_page={{ i }}#pending">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if pending_payments.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?pending_page={{ pending_payments.next_page_number }}#pending">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">No pending payment approvals.</div>
-                        {% endif %}
+                        <div class="card-body">
+                            {% if pending_payments %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Course</th>
+                                            <th>Date Submitted</th>
+                                            <th>Proof</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for payment in pending_payments %}
+                                        <tr>
+                                            <td>{{ payment.user.get_full_name|default:payment.user.username }}</td>
+                                            <td>{{ payment.course.title }}</td>
+                                            <td>{{ payment.submitted_at|date }}</td>
+                                            <td>
+                                                <a href="{{ payment.proof_image.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View Proof</a>
+                                            </td>
+                                            <td>
+                                                <form method="post" action="{% url 'payment_approval' payment.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="approve">
+                                                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                                </form>
+                                                <form method="post" action="{% url 'payment_approval' payment.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="reject">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Pending Approvals -->
+                            {% if pending_payments.has_other_pages %}
+                            <nav aria-label="Pending approvals pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if pending_payments.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?pending_page={{ pending_payments.previous_page_number }}#pending" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in pending_payments.paginator.page_range %}
+                                    {% if pending_payments.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?pending_page={{ i }}#pending">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if pending_payments.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?pending_page={{ pending_payments.next_page_number }}#pending">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">No pending payment approvals.</div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Students Tab -->
-            <div class="tab-pane fade" id="students" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Student Management</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if students %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Level</th>
-                                        <th>Teacher</th>
-                                        <th>Status</th>
-                                        <th>Period</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for student in students %}
-                                    <tr>
-                                        <td>{{ student.get_full_name|default:student.username }}</td>
-                                        <td>{{ student.email }}</td>
-                                        <td>
-                                            {% if student.student_profile.proficiency_level %}
-                                                <span class="badge bg-primary">{{ student.student_profile.proficiency_level|title }}</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">Not determined</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.student_profile.assigned_teacher %}
-                                                {{ student.student_profile.assigned_teacher.get_full_name }}
-                                            {% else %}
-                                                <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.is_active %}
-                                                <span class="badge bg-success">Active</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.start_date and student.end_date %}
-                                                {{ student.start_date|date }} - {{ student.end_date|date }}
-                                            {% else %}
-                                                <a href="{% url 'set_student_dates' student.id %}" class="btn btn-sm btn-outline-primary">Set Dates</a>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <form method="post" action="{% url 'toggle_user_status' student.id %}" class="d-inline">
-                                                {% csrf_token %}
+                
+                <!-- Students Tab -->
+                <div class="tab-pane fade" id="students" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Student Management</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if students %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Level</th>
+                                            <th>Teacher</th>
+                                            <th>Status</th>
+                                            <th>Period</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for student in students %}
+                                        <tr>
+                                            <td>{{ student.get_full_name|default:student.username }}</td>
+                                            <td>{{ student.email }}</td>
+                                            <td>
+                                                {% if student.student_profile.proficiency_level %}
+                                                    <span class="badge bg-primary">{{ student.student_profile.proficiency_level|title }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Not determined</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if student.student_profile.assigned_teacher %}
+                                                    {{ student.student_profile.assigned_teacher.get_full_name }}
+                                                {% else %}
+                                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
+                                                {% endif %}
+                                            </td>
+                                            <td>
                                                 {% if student.is_active %}
-                                                    <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    <span class="badge bg-success">Active</span>
                                                 {% else %}
-                                                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    <span class="badge bg-danger">Inactive</span>
                                                 {% endif %}
-                                            </form>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td>
+                                                {% if student.start_date and student.end_date %}
+                                                    {{ student.start_date|date }} - {{ student.end_date|date }}
+                                                {% else %}
+                                                    <a href="{% url 'set_student_dates' student.id %}" class="btn btn-sm btn-outline-primary">Set Dates</a>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <form method="post" action="{% url 'toggle_user_status' student.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    {% if student.is_active %}
+                                                        <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    {% endif %}
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Students -->
+                            {% if students.has_other_pages %}
+                            <nav aria-label="Students pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if students.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?students_page={{ students.previous_page_number }}#students" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in students.paginator.page_range %}
+                                    {% if students.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?students_page={{ i }}#students">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                    
+                                    {% if students.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?students_page={{ students.next_page_number }}#students">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">No students registered yet.</div>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Pagination for Students -->
-                        {% if students.has_other_pages %}
-                        <nav aria-label="Students pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if students.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ students.previous_page_number }}#students" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in students.paginator.page_range %}
-                                {% if students.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ i }}#students">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if students.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ students.next_page_number }}#students">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">No students registered yet.</div>
-                        {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Teachers Tab -->
-            <div class="tab-pane fade" id="teachers" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Teacher Management</h5>
-                        <a href="{% url 'create_teacher' %}" class="btn btn-sm btn-primary">Add New Teacher</a>
-                    </div>
-                    <div class="card-body">
-                        {% if teachers %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Status</th>
-                                        <th>Students</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for teacher in teachers %}
-                                    <tr>
-                                        <td>{{ teacher.get_full_name|default:teacher.username }}</td>
-                                        <td>{{ teacher.email }}</td>
-                                        <td>{{ teacher.phone_number|default:"Not provided" }}</td>
-                                        <td>
-                                            {% if teacher.is_active %}
-                                                <span class="badge bg-success">Active</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ teacher.assigned_students.count }}</td>
-                                        <td>
-                                            <form method="post" action="{% url 'toggle_user_status' teacher.id %}" class="d-inline">
-                                                {% csrf_token %}
+                
+                <!-- Teachers Tab -->
+                <div class="tab-pane fade" id="teachers" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Teacher Management</h5>
+                            <a href="{% url 'create_teacher' %}" class="btn btn-sm btn-primary">Add New Teacher</a>
+                        </div>
+                        <div class="card-body">
+                            {% if teachers %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Status</th>
+                                            <th>Students</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for teacher in teachers %}
+                                        <tr>
+                                            <td>{{ teacher.get_full_name|default:teacher.username }}</td>
+                                            <td>{{ teacher.email }}</td>
+                                            <td>{{ teacher.phone_number|default:"Not provided" }}</td>
+                                            <td>
                                                 {% if teacher.is_active %}
-                                                    <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    <span class="badge bg-success">Active</span>
                                                 {% else %}
-                                                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    <span class="badge bg-danger">Inactive</span>
                                                 {% endif %}
-                                            </form>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td>{{ teacher.assigned_students.count }}</td>
+                                            <td>
+                                                <form method="post" action="{% url 'toggle_user_status' teacher.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    {% if teacher.is_active %}
+                                                        <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    {% endif %}
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Teachers -->
+                            {% if teachers.has_other_pages %}
+                            <nav aria-label="Teachers pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if teachers.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?teachers_page={{ teachers.previous_page_number }}#teachers" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in teachers.paginator.page_range %}
+                                    {% if teachers.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?teachers_page={{ i }}#teachers">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                    
+                                    {% if teachers.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?teachers_page={{ teachers.next_page_number }}#teachers">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">No teachers registered yet.</div>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Pagination for Teachers -->
-                        {% if teachers.has_other_pages %}
-                        <nav aria-label="Teachers pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if teachers.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?teachers_page={{ teachers.previous_page_number }}#teachers" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in teachers.paginator.page_range %}
-                                {% if teachers.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?teachers_page={{ i }}#teachers">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if teachers.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?teachers_page={{ teachers.next_page_number }}#teachers">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">No teachers registered yet.</div>
-                        {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Organizations Tab -->
-            <div class="tab-pane fade" id="organizations" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Organization Inquiries</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if organizations %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Company Name</th>
-                                        <th>Contact Person</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Trainees</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for org in organizations %}
-                                    <tr>
-                                        <td>{{ org.company_name }}</td>
-                                        <td>{{ org.contact_person }}</td>
-                                        <td>{{ org.email }}</td>
-                                        <td>{{ org.phone_number|default:"Not provided" }}</td>
-                                        <td>{{ org.number_of_trainees }}</td>
-                                        <td>
-                                            {% if org.is_active %}
-                                                <span class="badge bg-success">Active</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <form method="post" action="{% url 'toggle_user_status' org.id %}" class="d-inline">
-                                                {% csrf_token %}
+                
+                <!-- Organizations Tab -->
+                <div class="tab-pane fade" id="organizations" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Organization Inquiries</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if organizations %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Company Name</th>
+                                            <th>Contact Person</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Trainees</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for org in organizations %}
+                                        <tr>
+                                            <td>{{ org.company_name }}</td>
+                                            <td>{{ org.contact_person }}</td>
+                                            <td>{{ org.email }}</td>
+                                            <td>{{ org.phone_number|default:"Not provided" }}</td>
+                                            <td>{{ org.number_of_trainees }}</td>
+                                            <td>
                                                 {% if org.is_active %}
-                                                    <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    <span class="badge bg-success">Active</span>
                                                 {% else %}
-                                                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    <span class="badge bg-danger">Inactive</span>
                                                 {% endif %}
-                                            </form>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td>
+                                                <form method="post" action="{% url 'toggle_user_status' org.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    {% if org.is_active %}
+                                                        <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    {% endif %}
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Organizations -->
+                            {% if organizations.has_other_pages %}
+                            <nav aria-label="Organizations pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if organizations.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?organizations_page={{ organizations.previous_page_number }}#organizations" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in organizations.paginator.page_range %}
+                                    {% if organizations.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?organizations_page={{ i }}#organizations">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                    
+                                    {% if organizations.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?organizations_page={{ organizations.next_page_number }}#organizations">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">No organization inquiries yet.</div>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Pagination for Organizations -->
-                        {% if organizations.has_other_pages %}
-                        <nav aria-label="Organizations pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if organizations.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?organizations_page={{ organizations.previous_page_number }}#organizations" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in organizations.paginator.page_range %}
-                                {% if organizations.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?organizations_page={{ i }}#organizations">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if organizations.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?organizations_page={{ organizations.next_page_number }}#organizations">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">No organization inquiries yet.</div>
-                        {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Assignments Tab -->
-            <div class="tab-pane fade" id="assignments" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Assignment Management</h5>
-                        <a href="{% url 'assignment_create' %}" class="btn btn-sm btn-primary">Create New Assignment</a>
-                    </div>
-                    <div class="card-body">
-                        {% if assignments %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Course</th>
-                                        <th>Due Date</th>
-                                        <th>Status</th>
-                                        <th>Submissions</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for assignment in assignments %}
-                                    <tr>
-                                        <td>{{ assignment.title }}</td>
-                                        <td>{{ assignment.course.title }}</td>
-                                        <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
-                                        <td>
-                                            {% if assignment.status == 'published' %}
-                                                <span class="badge bg-success">Published</span>
-                                            {% elif assignment.status == 'draft' %}
-                                                <span class="badge bg-secondary">Draft</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Archived</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {{ assignment.submission_count }} 
-                                            {% if assignment.ungraded_count %}
-                                                <span class="badge bg-warning">{{ assignment.ungraded_count }} ungraded</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <a href="{% url 'assignment_update' assignment.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                                <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-sm btn-outline-secondary">View Submissions</a>
-                                            </div>
-                                        </td>
-                                    </tr>
+                
+                <!-- Assignments Tab -->
+                <div class="tab-pane fade" id="assignments" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Assignment Management</h5>
+                            <a href="{% url 'assignment_create' %}" class="btn btn-sm btn-primary">Create New Assignment</a>
+                        </div>
+                        <div class="card-body">
+                            {% if assignments %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Course</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Submissions</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for assignment in assignments %}
+                                        <tr>
+                                            <td>{{ assignment.title }}</td>
+                                            <td>{{ assignment.course.title }}</td>
+                                            <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                                            <td>
+                                                {% if assignment.status == 'published' %}
+                                                    <span class="badge bg-success">Published</span>
+                                                {% elif assignment.status == 'draft' %}
+                                                    <span class="badge bg-secondary">Draft</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Archived</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ assignment.submission_count }} 
+                                                {% if assignment.ungraded_count %}
+                                                    <span class="badge bg-warning">{{ assignment.ungraded_count }} ungraded</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{% url 'assignment_update' assignment.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                    <a href="{% url 'assignment_submissions' assignment.id %}" class="btn btn-sm btn-outline-secondary">View Submissions</a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Assignments -->
+                            {% if assignments.has_other_pages %}
+                            <nav aria-label="Assignments pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if assignments.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?assignments_page={{ assignments.previous_page_number }}#assignments" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in assignments.paginator.page_range %}
+                                    {% if assignments.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?assignments_page={{ i }}#assignments">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                    
+                                    {% if assignments.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?assignments_page={{ assignments.next_page_number }}#assignments">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No assignments found. <a href="{% url 'assignment_create' %}" class="alert-link">Create your first assignment</a>.</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Pagination for Assignments -->
-                        {% if assignments.has_other_pages %}
-                        <nav aria-label="Assignments pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if assignments.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?assignments_page={{ assignments.previous_page_number }}#assignments" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in assignments.paginator.page_range %}
-                                {% if assignments.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?assignments_page={{ i }}#assignments">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if assignments.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?assignments_page={{ assignments.next_page_number }}#assignments">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">
-                            <p class="mb-0">No assignments found. <a href="{% url 'assignment_create' %}" class="alert-link">Create your first assignment</a>.</p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Learning Materials Tab -->
-            <div class="tab-pane fade" id="materials" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Learning Materials Management</h5>
-                        <a href="{% url 'material_create' %}" class="btn btn-sm btn-primary">Add New Material</a>
-                    </div>
-                    <div class="card-body">
-                        {% if materials %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Course</th>
-                                        <th>Type</th>
-                                        <th>Order</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for material in materials %}
-                                    <tr>
-                                        <td>{{ material.title }}</td>
-                                        <td>{{ material.course.title }}</td>
-                                        <td>
-                                            <span class="badge 
-                                                {% if material.material_type == 'document' %}bg-primary
-                                                {% elif material.material_type == 'video' %}bg-danger
-                                                {% elif material.material_type == 'image' %}bg-success
-                                                {% else %}bg-info{% endif %}">
-                                                {{ material.material_type|title }}
-                                            </span>
-                                        </td>
-                                        <td>{{ material.order }}</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                {% if material.material_type == 'link' %}
-                                                    <a href="{{ material.external_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
-                                                {% elif material.file %}
-                                                    <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
-                                                {% endif %}
-                                                <a href="{% url 'material_update' material.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                                <a href="{% url 'material_delete' material.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
-                                            </div>
-                                        </td>
-                                    </tr>
+                
+                <!-- Learning Materials Tab -->
+                <div class="tab-pane fade" id="materials" role="tabpanel">
+                    <div class="card shadow">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Learning Materials Management</h5>
+                            <a href="{% url 'material_create' %}" class="btn btn-sm btn-primary">Add New Material</a>
+                        </div>
+                        <div class="card-body">
+                            {% if materials %}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Course</th>
+                                            <th>Type</th>
+                                            <th>Order</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for material in materials %}
+                                        <tr>
+                                            <td>{{ material.title }}</td>
+                                            <td>{{ material.course.title }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if material.material_type == 'document' %}bg-primary
+                                                    {% elif material.material_type == 'video' %}bg-danger
+                                                    {% elif material.material_type == 'image' %}bg-success
+                                                    {% else %}bg-info{% endif %}">
+                                                    {{ material.material_type|title }}
+                                                </span>
+                                            </td>
+                                            <td>{{ material.order }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    {% if material.material_type == 'link' %}
+                                                        <a href="{{ material.external_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                    {% elif material.file %}
+                                                        <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                    {% endif %}
+                                                    <a href="{% url 'material_update' material.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                    <a href="{% url 'material_delete' material.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination for Learning Materials -->
+                            {% if materials.has_other_pages %}
+                            <nav aria-label="Materials pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if materials.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?materials_page={{ materials.previous_page_number }}#materials" tabindex="-1">Previous</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Previous</span>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for i in materials.paginator.page_range %}
+                                    {% if materials.number == i %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ i }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?materials_page={{ i }}#materials">{{ i }}</a>
+                                    </li>
+                                    {% endif %}
                                     {% endfor %}
-                                </tbody>
-                            </table>
+                                    
+                                    {% if materials.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?materials_page={{ materials.next_page_number }}#materials">Next</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next</span>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No learning materials found. <a href="{% url 'material_create' %}" class="alert-link">Add your first material</a>.</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        
-                        <!-- Pagination for Learning Materials -->
-                        {% if materials.has_other_pages %}
-                        <nav aria-label="Materials pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if materials.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?materials_page={{ materials.previous_page_number }}#materials" tabindex="-1">Previous</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
-                                {% endif %}
-                                
-                                {% for i in materials.paginator.page_range %}
-                                {% if materials.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
-                                {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?materials_page={{ i }}#materials">{{ i }}</a>
-                                </li>
-                                {% endif %}
-                                {% endfor %}
-                                
-                                {% if materials.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?materials_page={{ materials.next_page_number }}#materials">Next</a>
-                                </li>
-                                {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">
-                            <p class="mb-0">No learning materials found. <a href="{% url 'material_create' %}" class="alert-link">Add your first material</a>.</p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+    {% endblock %}
