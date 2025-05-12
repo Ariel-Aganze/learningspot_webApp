@@ -13,7 +13,11 @@ from .forms import CourseForm, CourseLevelForm, AssignmentForm, AssignmentSubmis
 from accounts.models import PaymentProof, StudentProfile, User
 from accounts.forms import PaymentProofForm
 
-# Updated permission helper functions
+from django.http import JsonResponse
+from .models import ContentView
+from django.db.models import Max
+from datetime import timedelta
+
 
 def is_admin(user):
     """Check if user is admin or superuser"""
@@ -179,6 +183,8 @@ def course_detail_by_id(request, course_id):
 
 @login_required
 def student_course_dashboard(request, slug):
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    
     course = get_object_or_404(Course, slug=slug, is_active=True)
     
     # Verify the student is enrolled in this course
@@ -190,11 +196,53 @@ def student_course_dashboard(request, slug):
         course=course
     )
     
-    # Get course materials
-    materials = course.materials.all()
+    # Get the last login time to determine new content
+    # If not available, use 7 days ago as default
+    last_login = request.user.last_login or (timezone.now() - timedelta(days=2))
     
-    # Get assignments
-    assignments = course.assignments.all()
+    # Get course materials with "new" flag
+    all_materials = course.materials.all().order_by('order')
+    materials_count = all_materials.count()
+    
+    # Get viewed content
+    viewed_material_ids = ContentView.objects.filter(
+        user=request.user,
+        course=course,
+        content_type='material'
+    ).values_list('content_id', flat=True)
+    
+    # Mark materials as new if created after last login and not viewed
+    for material in all_materials:
+        material.is_new = (
+            material.created_at > last_login and 
+            material.id not in viewed_material_ids
+        )
+    
+    # Count new materials
+    new_materials_count = sum(1 for m in all_materials if getattr(m, 'is_new', False))
+    
+    # Get assignments with "new" flag
+    all_assignments = course.assignments.all().order_by('-due_date')
+    assignments_count = all_assignments.count()
+    
+    # Get viewed assignments
+    viewed_assignment_ids = ContentView.objects.filter(
+        user=request.user,
+        course=course,
+        content_type='assignment'
+    ).values_list('content_id', flat=True)
+    
+    # Mark assignments as new
+    for assignment in all_assignments:
+        assignment.is_new = (
+            assignment.created_at > last_login and 
+            assignment.id not in viewed_assignment_ids
+        )
+    
+    # Count new assignments
+    new_assignments_count = sum(1 for a in all_assignments if getattr(a, 'is_new', False))
+    
+    # Get assignment submissions for this user
     assignment_submissions = AssignmentSubmission.objects.filter(
         student=request.user,
         assignment__course=course
@@ -205,24 +253,74 @@ def student_course_dashboard(request, slug):
     for submission in assignment_submissions:
         submissions_dict[submission.assignment_id] = submission
     
-    # Get quizzes related to this course
-    quizzes = Quiz.objects.filter(course=course)
+    # Get quizzes related to this course with "new" flag
+    all_quizzes = Quiz.objects.filter(course=course).order_by('-created_at')
+    quizzes_count = all_quizzes.count()
+    
+    # Get viewed quizzes
+    viewed_quiz_ids = ContentView.objects.filter(
+        user=request.user,
+        course=course,
+        content_type='quiz'
+    ).values_list('content_id', flat=True)
+    
+    # Mark quizzes as new
+    for quiz in all_quizzes:
+        quiz.is_new = (
+            quiz.created_at > last_login and 
+            quiz.id not in viewed_quiz_ids
+        )
+    
+    # Count new quizzes
+    new_quizzes_count = sum(1 for q in all_quizzes if getattr(q, 'is_new', False))
     
     # Get quiz attempts and organize them by quiz ID
     quiz_attempts = QuizAttempt.objects.filter(
         user=request.user,
-        quiz__in=quizzes
+        quiz__in=all_quizzes
     ).select_related('quiz')
     
     attempts_dict = {}
     for attempt in quiz_attempts:
         attempts_dict[attempt.quiz_id] = attempt
     
+    # Pagination for materials
+    materials_paginator = Paginator(all_materials, 5)
+    materials_page = request.GET.get('materials_page', 1)
+    
+    try:
+        materials = materials_paginator.page(materials_page)
+    except PageNotAnInteger:
+        materials = materials_paginator.page(1)
+    except EmptyPage:
+        materials = materials_paginator.page(materials_paginator.num_pages)
+    
+    # Pagination for assignments
+    assignments_paginator = Paginator(all_assignments, 5)
+    assignments_page = request.GET.get('assignments_page', 1)
+    
+    try:
+        assignments = assignments_paginator.page(assignments_page)
+    except PageNotAnInteger:
+        assignments = assignments_paginator.page(1)
+    except EmptyPage:
+        assignments = assignments_paginator.page(assignments_paginator.num_pages)
+    
+    # Pagination for quizzes
+    quizzes_paginator = Paginator(all_quizzes, 5)
+    quizzes_page = request.GET.get('quizzes_page', 1)
+    
+    try:
+        quizzes = quizzes_paginator.page(quizzes_page)
+    except PageNotAnInteger:
+        quizzes = quizzes_paginator.page(1)
+    except EmptyPage:
+        quizzes = quizzes_paginator.page(quizzes_paginator.num_pages)
+    
     # Calculate overall progress
-    total_items = materials.count() + assignments.count() + quizzes.count()
+    total_items = materials_count + assignments_count + quizzes_count
     completed_items = 0
     
-    # Count completed materials (implement a system to track this)
     # Count completed assignments
     completed_items += assignment_submissions.filter(status='graded').count()
     # Count completed quizzes
@@ -244,11 +342,21 @@ def student_course_dashboard(request, slug):
         'course': course,
         'progress': progress,
         'materials': materials,
+        'materials_paginator': materials_paginator,
+        'materials_count': materials_count,
+        'new_materials_count': new_materials_count,
         'assignments': assignments,
+        'assignments_paginator': assignments_paginator,
+        'assignments_count': assignments_count,
+        'new_assignments_count': new_assignments_count,
         'submissions_dict': submissions_dict,
         'quizzes': quizzes,
+        'quizzes_paginator': quizzes_paginator,
+        'quizzes_count': quizzes_count,
+        'new_quizzes_count': new_quizzes_count,
         'attempts_dict': attempts_dict
     }
+
     
     return render(request, 'courses/student_course_dashboard.html', context)
 
@@ -755,3 +863,37 @@ def submission_detail(request, submission_id):
         'submission': submission,
         'assignment': assignment
     })
+
+@login_required
+def mark_content_viewed(request):
+    """
+    AJAX endpoint to mark content as viewed by the student
+    """
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        content_type = request.POST.get('content_type')
+        content_id = request.POST.get('content_id')
+        course_id = request.POST.get('course_id')
+        
+        if not all([content_type, content_id, course_id]):
+            return JsonResponse({'status': 'error', 'message': 'Missing parameters'}, status=400)
+        
+        try:
+            course = Course.objects.get(id=course_id)
+            content_view, created = ContentView.objects.get_or_create(
+                user=request.user,
+                course=course,
+                content_type=content_type,
+                content_id=content_id
+            )
+            
+            if not created:
+                # Update the timestamp if it already exists
+                content_view.viewed_at = timezone.now()
+                content_view.save()
+                
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+

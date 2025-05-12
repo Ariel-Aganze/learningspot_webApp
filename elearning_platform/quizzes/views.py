@@ -152,7 +152,11 @@ def take_placement_test(request, course_id):
         return redirect('student_dashboard')
     
     # Get the placement test quiz for this course
-    quiz = get_object_or_404(Quiz, course=course, is_active=True)
+    try:
+        quiz = get_object_or_404(Quiz, course=course, is_active=True, is_placement_test=True)
+    except:
+        messages.error(request, 'No placement test is available for this course.')
+        return redirect('student_dashboard')
     
     # Check if there's an ongoing attempt
     attempt = QuizAttempt.objects.filter(
@@ -601,6 +605,8 @@ def quiz_results(request, attempt_id):
 @login_required
 @user_passes_test(is_teacher_or_admin)
 def question_list(request):
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    
     questions = Question.objects.all().select_related('course')
     
     # Filter options
@@ -621,8 +627,24 @@ def question_list(request):
     if search:
         questions = questions.filter(text__icontains=search)
     
+    # Order questions by most recently created
+    questions = questions.order_by('-created_at')
+    
+    # Pagination with 5 questions per page
+    paginator = Paginator(questions, 5)
+    page = request.GET.get('page', 1)
+    
+    try:
+        questions_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        questions_page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        questions_page = paginator.page(paginator.num_pages)
+    
     return render(request, 'quizzes/question_list.html', {
-        'questions': questions,
+        'questions': questions_page,
         'courses': courses,
         'difficulty_choices': difficulty_choices
     })
@@ -702,9 +724,9 @@ def question_update(request, question_id):
 @login_required
 @user_passes_test(is_teacher_or_admin)
 def quiz_list(request):
-    quizzes = Quiz.objects.all().select_related('course')
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
     
-    # Filter options
+    quizzes = Quiz.objects.all().select_related('course')
     courses = Course.objects.all()
     
     # Apply filters
@@ -723,8 +745,24 @@ def quiz_list(request):
     if search:
         quizzes = quizzes.filter(title__icontains=search)
     
+    # Order quizzes by most recently created
+    quizzes = quizzes.order_by('-created_at')
+    
+    # Pagination with 5 quizzes per page
+    paginator = Paginator(quizzes, 5)
+    page = request.GET.get('page', 1)
+    
+    try:
+        quizzes_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        quizzes_page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page
+        quizzes_page = paginator.page(paginator.num_pages)
+    
     return render(request, 'quizzes/quiz_list.html', {
-        'quizzes': quizzes,
+        'quizzes': quizzes_page,
         'courses': courses
     })
 

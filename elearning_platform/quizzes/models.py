@@ -126,10 +126,18 @@ class Quiz(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='quizzes')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    is_placement_test = models.BooleanField(default=False)
     time_limit = models.PositiveIntegerField(default=30, help_text="Time limit in minutes")
     passing_score = models.PositiveIntegerField(default=60, help_text="Passing score in percentage")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def save(self, *args, **kwargs):
+        # If this is being marked as a placement test
+        if self.is_placement_test:
+            # Unmark any other placement tests for this course
+            Quiz.objects.filter(course=self.course, is_placement_test=True).exclude(pk=self.pk).update(is_placement_test=False)
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return self.title

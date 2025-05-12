@@ -3,6 +3,45 @@
 
 {% block title %}{{ course.title }} Dashboard - E-Learning Platform{% endblock %}
 
+{% block extra_css %}
+<style>
+    .pagination-container {
+        margin-top: 20px;
+    }
+    .pagination {
+        justify-content: center;
+    }
+    .pagination-summary {
+        text-align: center;
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 8px;
+    }
+    .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        border-radius: 50%;
+        background-color: #dc3545;
+        color: white;
+    }
+    .new-content {
+        animation: highlight-green 1s ease-in-out;
+        background-color: rgba(25, 135, 84, 0.1) !important;
+        border-left: 4px solid #198754 !important;
+    }
+    @keyframes highlight-green {
+        0% { background-color: rgba(25, 135, 84, 0.3); }
+        100% { background-color: rgba(25, 135, 84, 0.1); }
+    }
+    .nav-tabs .nav-link {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
@@ -47,7 +86,7 @@
                     <div class="col-md-4">
                         <div class="card border-0">
                             <div class="card-body">
-                                <h5 class="card-title">{{ materials.count }}</h5>
+                                <h5 class="card-title">{{ materials_count }}</h5>
                                 <p class="card-text text-muted">Learning Materials</p>
                             </div>
                         </div>
@@ -55,7 +94,7 @@
                     <div class="col-md-4">
                         <div class="card border-0">
                             <div class="card-body">
-                                <h5 class="card-title">{{ assignments.count }}</h5>
+                                <h5 class="card-title">{{ assignments_count }}</h5>
                                 <p class="card-text text-muted">Assignments</p>
                             </div>
                         </div>
@@ -63,7 +102,7 @@
                     <div class="col-md-4">
                         <div class="card border-0">
                             <div class="card-body">
-                                <h5 class="card-title">{{ quizzes.count }}</h5>
+                                <h5 class="card-title">{{ quizzes_count }}</h5>
                                 <p class="card-text text-muted">Quizzes</p>
                             </div>
                         </div>
@@ -81,13 +120,28 @@
             <div class="card-header bg-white">
                 <ul class="nav nav-tabs card-header-tabs" id="courseContentTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
+                        <button class="nav-link active" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab">
+                            Learning Materials
+                            {% if new_materials_count > 0 %}
+                                <span class="notification-badge">{{ new_materials_count }}</span>
+                            {% endif %}
+                        </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">Assignments</button>
+                        <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">
+                            Assignments
+                            {% if new_assignments_count > 0 %}
+                                <span class="notification-badge">{{ new_assignments_count }}</span>
+                            {% endif %}
+                        </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes" type="button" role="tab">Quizzes</button>
+                        <button class="nav-link" id="quizzes-tab" data-bs-toggle="tab" data-bs-target="#quizzes" type="button" role="tab">
+                            Quizzes
+                            {% if new_quizzes_count > 0 %}
+                                <span class="notification-badge">{{ new_quizzes_count }}</span>
+                            {% endif %}
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -98,9 +152,15 @@
                         {% if materials %}
                             <div class="list-group">
                                 {% for material in materials %}
-                                    <div class="list-group-item list-group-item-action">
+                                    <div class="list-group-item list-group-item-action {% if material.is_new %}new-content{% endif %}" 
+                                         {% if material.is_new %}data-content-type="material" data-content-id="{{ material.id }}"{% endif %}>
                                         <div class="d-flex w-100 justify-content-between">
-                                            <h5 class="mb-1">{{ material.title }}</h5>
+                                            <h5 class="mb-1">
+                                                {{ material.title }}
+                                                {% if material.is_new %}
+                                                    <span class="badge bg-success">New</span>
+                                                {% endif %}
+                                            </h5>
                                             <small class="text-muted">{{ material.material_type|title }}</small>
                                         </div>
                                         {% if material.description %}
@@ -108,17 +168,77 @@
                                         {% endif %}
                                         <div class="mt-2">
                                             {% if material.material_type == 'document' or material.material_type == 'image' %}
-                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary" target="_blank">View</a>
-                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-outline-secondary" download>Download</a>
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary view-content" 
+                                                   data-content-type="material" data-content-id="{{ material.id }}" target="_blank">View</a>
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-outline-secondary view-content" 
+                                                   data-content-type="material" data-content-id="{{ material.id }}" download>Download</a>
                                             {% elif material.material_type == 'video' %}
-                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary" target="_blank">Watch Video</a>
+                                                <a href="{{ material.file.url }}" class="btn btn-sm btn-primary view-content" 
+                                                   data-content-type="material" data-content-id="{{ material.id }}" target="_blank">Watch Video</a>
                                             {% elif material.material_type == 'link' %}
-                                                <a href="{{ material.external_url }}" class="btn btn-sm btn-primary" target="_blank">Open Link</a>
+                                                <a href="{{ material.external_url }}" class="btn btn-sm btn-primary view-content" 
+                                                   data-content-type="material" data-content-id="{{ material.id }}" target="_blank">Open Link</a>
                                             {% endif %}
                                         </div>
                                     </div>
                                 {% endfor %}
                             </div>
+                            
+                            <!-- Materials Pagination -->
+                            {% if materials.has_other_pages %}
+                            <div class="pagination-container">
+                                <ul class="pagination">
+                                    {% if materials.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?materials_page=1" aria-label="First">
+                                                <span aria-hidden="true">&laquo;&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?materials_page={{ materials.previous_page_number }}" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&laquo;</span>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for i in materials_paginator.page_range %}
+                                        {% if materials.number == i %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ i }}</span>
+                                            </li>
+                                        {% elif i > materials.number|add:'-3' and i < materials.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?materials_page={{ i }}">{{ i }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if materials.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?materials_page={{ materials.next_page_number }}" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?materials_page={{ materials_paginator.num_pages }}" aria-label="Last">
+                                                <span aria-hidden="true">&raquo;&raquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&raquo;</span>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                                <div class="pagination-summary">
+                                    Page {{ materials.number }} of {{ materials_paginator.num_pages }} ({{ materials_paginator.count }} total materials)
+                                </div>
+                            </div>
+                            {% endif %}
                         {% else %}
                             <div class="alert alert-info">
                                 <p class="mb-0">No learning materials available for this course yet.</p>
@@ -135,9 +255,15 @@
                             </div>
                             <div class="list-group">
                                 {% for assignment in assignments %}
-                                    <div class="list-group-item list-group-item-action">
+                                    <div class="list-group-item list-group-item-action {% if assignment.is_new %}new-content{% endif %}"
+                                         {% if assignment.is_new %}data-content-type="assignment" data-content-id="{{ assignment.id }}"{% endif %}>
                                         <div class="d-flex w-100 justify-content-between">
-                                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                                            <h6 class="mb-1">
+                                                {{ assignment.title }}
+                                                {% if assignment.is_new %}
+                                                    <span class="badge bg-success">New</span>
+                                                {% endif %}
+                                            </h6>
                                             <small class="text-muted">
                                                 {% if assignment.is_past_due %}
                                                     <span class="text-danger">Due date passed</span>
@@ -161,9 +287,11 @@
                                                         {% elif submission.status == 'resubmit' %}
                                                             <span class="badge bg-danger">Needs Resubmission</span>
                                                         {% endif %}
-                                                        <a href="{% url 'submission_detail' submission.id %}" class="btn btn-sm btn-outline-primary ms-2">View</a>
+                                                        <a href="{% url 'submission_detail' submission.id %}" class="btn btn-sm btn-outline-primary ms-2 view-content"
+                                                           data-content-type="assignment" data-content-id="{{ assignment.id }}">View</a>
                                                     {% else %}
-                                                        <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-primary">Submit</a>
+                                                        <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-primary view-content"
+                                                           data-content-type="assignment" data-content-id="{{ assignment.id }}">Submit</a>
                                                     {% endif %}
                                                 {% endwith %}
                                             </div>
@@ -171,6 +299,62 @@
                                     </div>
                                 {% endfor %}
                             </div>
+                            
+                            <!-- Assignments Pagination -->
+                            {% if assignments.has_other_pages %}
+                            <div class="pagination-container">
+                                <ul class="pagination">
+                                    {% if assignments.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?assignments_page=1" aria-label="First">
+                                                <span aria-hidden="true">&laquo;&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?assignments_page={{ assignments.previous_page_number }}" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&laquo;</span>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for i in assignments_paginator.page_range %}
+                                        {% if assignments.number == i %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ i }}</span>
+                                            </li>
+                                        {% elif i > assignments.number|add:'-3' and i < assignments.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?assignments_page={{ i }}">{{ i }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if assignments.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?assignments_page={{ assignments.next_page_number }}" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?assignments_page={{ assignments_paginator.num_pages }}" aria-label="Last">
+                                                <span aria-hidden="true">&raquo;&raquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&raquo;</span>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                                <div class="pagination-summary">
+                                    Page {{ assignments.number }} of {{ assignments_paginator.num_pages }} ({{ assignments_paginator.count }} total assignments)
+                                </div>
+                            </div>
+                            {% endif %}
                         {% else %}
                             <div class="alert alert-info">
                                 <p class="mb-0">No assignments available for this course yet.</p>
@@ -184,9 +368,15 @@
                             <div class="list-group">
                                 {% for quiz in quizzes %}
                                     {% with attempt=attempts_dict|get:quiz.id %}
-                                    <div class="list-group-item list-group-item-action">
+                                    <div class="list-group-item list-group-item-action {% if quiz.is_new %}new-content{% endif %}"
+                                         {% if quiz.is_new %}data-content-type="quiz" data-content-id="{{ quiz.id }}"{% endif %}>
                                         <div class="d-flex w-100 justify-content-between">
-                                            <h5 class="mb-1">{{ quiz.title }}</h5>
+                                            <h5 class="mb-1">
+                                                {{ quiz.title }}
+                                                {% if quiz.is_new %}
+                                                    <span class="badge bg-success">New</span>
+                                                {% endif %}
+                                            </h5>
                                             {% if attempt %}
                                                 {% if attempt.status == 'in_progress' %}
                                                     <span class="badge bg-warning">In Progress</span>
@@ -203,17 +393,76 @@
                                         <small class="text-muted">Time Limit: {{ quiz.time_limit }} minutes</small>
                                         <div class="mt-2">
                                             {% if not attempt %}
-                                                <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-primary">Start Quiz</a>
+                                                <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-primary view-content"
+                                                   data-content-type="quiz" data-content-id="{{ quiz.id }}">Start Quiz</a>
                                             {% elif attempt.status == 'in_progress' %}
-                                                <a href="{% url 'take_quiz' attempt.id %}" class="btn btn-sm btn-warning">Continue Quiz</a>
+                                                <a href="{% url 'take_quiz' attempt.id %}" class="btn btn-sm btn-warning view-content"
+                                                   data-content-type="quiz" data-content-id="{{ quiz.id }}">Continue Quiz</a>
                                             {% else %}
-                                                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
+                                                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-sm btn-outline-primary view-content"
+                                                   data-content-type="quiz" data-content-id="{{ quiz.id }}">View Results</a>
                                             {% endif %}
                                         </div>
                                     </div>
                                     {% endwith %}
                                 {% endfor %}
                             </div>
+                            
+                            <!-- Quizzes Pagination -->
+                            {% if quizzes.has_other_pages %}
+                            <div class="pagination-container">
+                                <ul class="pagination">
+                                    {% if quizzes.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?quizzes_page=1" aria-label="First">
+                                                <span aria-hidden="true">&laquo;&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?quizzes_page={{ quizzes.previous_page_number }}" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&laquo;</span>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for i in quizzes_paginator.page_range %}
+                                        {% if quizzes.number == i %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ i }}</span>
+                                            </li>
+                                        {% elif i > quizzes.number|add:'-3' and i < quizzes.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?quizzes_page={{ i }}">{{ i }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if quizzes.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?quizzes_page={{ quizzes.next_page_number }}" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?quizzes_page={{ quizzes_paginator.num_pages }}" aria-label="Last">
+                                                <span aria-hidden="true">&raquo;&raquo;</span>
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">&raquo;</span>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                                <div class="pagination-summary">
+                                    Page {{ quizzes.number }} of {{ quizzes_paginator.num_pages }} ({{ quizzes_paginator.count }} total quizzes)
+                                </div>
+                            </div>
+                            {% endif %}
                         {% else %}
                             <div class="alert alert-info">
                                 <p class="mb-0">No quizzes available for this course yet.</p>
@@ -225,4 +474,162 @@
         </div>
     </div>
 </div>
+
+<!-- CSRF token for AJAX requests -->
+<input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+<input type="hidden" id="course_id" value="{{ course.id }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tab from hash in URL if present
+        const hash = window.location.hash;
+        if (hash) {
+            const tabId = hash.replace('#', '');
+            const tab = document.getElementById(tabId + '-tab');
+            if (tab) {
+                tab.click();
+            }
+        }
+        
+        // Update URL hash when tabs are clicked
+        const tabLinks = document.querySelectorAll('.nav-link');
+        tabLinks.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(e) {
+                const id = e.target.getAttribute('data-bs-target').replace('#', '');
+                history.replaceState(null, null, '#' + id);
+                
+                // Mark all visible new content items in this tab as viewed
+                const tabPane = document.querySelector(e.target.getAttribute('data-bs-target'));
+                if (tabPane) {
+                    const newItems = tabPane.querySelectorAll('.new-content');
+                    newItems.forEach(item => {
+                        markAsViewed(item);
+                    });
+                }
+            });
+        });
+        
+        // Function to mark content as viewed via AJAX
+        function markContentViewed(contentType, contentId) {
+            const csrfToken = document.getElementById('csrf_token').value;
+            const courseId = document.getElementById('course_id').value;
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('content_type', contentType);
+            formData.append('content_id', contentId);
+            formData.append('course_id', courseId);
+            
+            // Send AJAX request
+            fetch("{% url 'mark_content_viewed' %}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Content marked as viewed');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking content as viewed:', error);
+            });
+        }
+        
+        // Function to mark item as viewed and update UI
+        function markAsViewed(element) {
+            if (!element || !element.classList.contains('new-content')) return;
+            
+            const contentType = element.getAttribute('data-content-type');
+            const contentId = element.getAttribute('data-content-id');
+            
+            if (!contentType || !contentId) return;
+            
+            // Remove the "new" styling
+            element.classList.remove('new-content');
+            
+            // Remove the "New" badge
+            const badges = element.querySelectorAll('.badge.bg-success');
+            badges.forEach(badge => {
+                if (badge.textContent.trim() === 'New') {
+                    badge.remove();
+                }
+            });
+            
+            // Mark as viewed in the database
+            markContentViewed(contentType, contentId);
+            
+            // Update the notification badge count
+            updateNotificationBadge(contentType);
+        }
+        
+        // Add click event listeners to all view buttons
+        const viewButtons = document.querySelectorAll('.view-content');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const contentType = this.getAttribute('data-content-type');
+                const contentId = this.getAttribute('data-content-id');
+                const listItem = this.closest('.list-group-item');
+                
+                if (listItem && listItem.classList.contains('new-content')) {
+                    markAsViewed(listItem);
+                }
+            });
+        });
+        
+        // Function to update the notification badge count for a tab
+        function updateNotificationBadge(contentType) {
+            let tabId, badgeSelector;
+            
+            switch(contentType) {
+                case 'material':
+                    tabId = 'materials-tab';
+                    break;
+                case 'assignment':
+                    tabId = 'assignments-tab';
+                    break;
+                case 'quiz':
+                    tabId = 'quizzes-tab';
+                    break;
+                default:
+                    return;
+            }
+            
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
+            
+            const badge = tab.querySelector('.notification-badge');
+            if (!badge) return;
+            
+            // Get the current count
+            let count = parseInt(badge.textContent);
+            if (isNaN(count)) return;
+            
+            // Decrease the count
+            count -= 1;
+            
+            // Update or remove the badge
+            if (count <= 0) {
+                badge.remove();
+            } else {
+                badge.textContent = count;
+            }
+        }
+        
+        // Mark all visible new content items in the active tab as viewed
+        const activeTabContent = document.querySelector('.tab-pane.active');
+        if (activeTabContent) {
+            const newItems = activeTabContent.querySelectorAll('.new-content');
+            newItems.forEach(item => {
+                markAsViewed(item);
+            });
+        }
+    });
+</script>
 {% endblock %}

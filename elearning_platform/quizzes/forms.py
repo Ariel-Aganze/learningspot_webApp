@@ -73,14 +73,15 @@ class VoiceRecordingForm(forms.ModelForm):
 class QuizForm(forms.ModelForm):
     class Meta:
         model = Quiz
-        fields = ['course', 'title', 'description', 'time_limit', 'passing_score', 'is_active']
+        fields = ['course', 'title', 'description', 'time_limit', 'passing_score', 'is_active', 'is_placement_test']
         widgets = {
             'course': forms.Select(attrs={'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'time_limit': forms.NumberInput(attrs={'class': 'form-control'}),
             'passing_score': forms.NumberInput(attrs={'class': 'form-control'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_placement_test': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
 class QuizQuestionForm(forms.ModelForm):

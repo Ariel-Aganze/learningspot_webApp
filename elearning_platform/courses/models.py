@@ -42,7 +42,6 @@ class CourseLevel(models.Model):
     def __str__(self):
         return f"{self.course.title} - {self.get_level_display()}"
 
-# courses/models.py
 class CourseProgress(models.Model):
     STATUS_CHOICES = (
         ('in_progress', 'In Progress'),
@@ -62,7 +61,6 @@ class CourseProgress(models.Model):
     def __str__(self):
         return f"{self.user.username}'s progress in {self.course.title}"
     
-# courses/models.py
 class CourseMaterial(models.Model):
     MATERIAL_TYPES = (
         ('document', 'Document'),
@@ -86,7 +84,6 @@ class CourseMaterial(models.Model):
     def __str__(self):
         return self.title
 
-# Add to courses/models.py
 
 class Assignment(models.Model):
     STATUS_CHOICES = (
@@ -154,3 +151,27 @@ class AssignmentSubmission(models.Model):
         if self.grade is not None and self.assignment.points > 0:
             return (self.grade / self.assignment.points) * 100
         return 0
+
+
+class ContentView(models.Model):
+    """
+    Tracks when a student has viewed specific course content (material, assignment, quiz)
+    """
+    CONTENT_TYPES = (
+        ('material', 'Learning Material'),
+        ('assignment', 'Assignment'),
+        ('quiz', 'Quiz'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='content_views')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='content_views')
+    content_type = models.CharField(max_length=20, choices=CONTENT_TYPES)
+    content_id = models.PositiveIntegerField()  # ID of the material, assignment, or quiz
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['user', 'content_type', 'content_id']
+        ordering = ['-viewed_at']
+    
+    def __str__(self):
+        return f"{self.user.username} viewed {self.content_type} {self.content_id}"

@@ -118,9 +118,37 @@ def student_dashboard(request):
             except:
                 payment.progress = None
     
+    # Check for pending placement tests
+    has_pending_placement_test = PaymentProof.objects.filter(
+        user=request.user, 
+        status='approved'
+    ).filter(
+        course__quizzes__is_placement_test=True,
+        course__quizzes__is_active=True
+    ).exists()
+    
+    # Get courses where student already has proficiency level
+    proficiency_level_courses = []
+    if student_profile.proficiency_level:
+        # If the student has a global proficiency level
+        proficiency_level_courses = [payment.course.id for payment in payment_proofs if payment.status == 'approved']
+    
+    # Exclude courses where student already has taken a placement test
+    if proficiency_level_courses:
+        has_pending_placement_test = PaymentProof.objects.filter(
+            user=request.user, 
+            status='approved'
+        ).filter(
+            course__quizzes__is_placement_test=True,
+            course__quizzes__is_active=True
+        ).exclude(
+            course__id__in=proficiency_level_courses
+        ).exists()
+    
     return render(request, 'accounts/student_dashboard.html', {
         'student_profile': student_profile,
-        'payment_proofs': payment_proofs
+        'payment_proofs': payment_proofs,
+        'has_pending_placement_test': has_pending_placement_test
     })
 
 @login_required

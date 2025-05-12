@@ -37,6 +37,7 @@ urlpatterns = [
     path('assignments/<slug:course_slug>/', views.student_assignments, name='student_assignments'),
     path('assignment/<int:assignment_id>/', views.assignment_detail, name='assignment_detail'),
     path('submission/<int:submission_id>/', views.submission_detail, name='submission_detail'),
+    path('mark-content-viewed/', views.mark_content_viewed, name='mark_content_viewed'),
 
     # This must come LAST because it will match anything that looks like a slug
     path('<slug:slug>/', views.course_detail, name='course_detail'),

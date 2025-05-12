@@ -10,6 +10,14 @@
     </div>
 </div>
 
+{% if has_pending_placement_test %}
+    <div class="alert alert-info">
+        <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Placement Tests Available</h5>
+        <p>You have placement tests available for courses you've enrolled in. 
+        <a href="#placement-tests" class="alert-link">Take them now</a> to determine your proficiency level and start your learning journey!</p>
+    </div>
+{% endif %}
+
 <div class="row">
     <!-- Profile Information -->
     <div class="col-md-4 mb-4">
@@ -52,83 +60,131 @@
             <div class="card-header bg-white">
                 <h5 class="mb-0">My Courses</h5>
             </div>
-            <!-- In templates/accounts/student_dashboard.html, replace the existing course table -->
-<div class="card-body">
-    {% if payment_proofs %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Course</th>
-                    <th>Status</th>
-                    <th>Progress</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for payment in payment_proofs %}
-                    <tr>
-                        <td>{{ payment.course.title }}</td>
-                        <td>
-                            {% if payment.status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
-                            {% elif payment.status == 'approved' %}
-                                <span class="badge bg-success">Approved</span>
-                            {% else %}
-                                <span class="badge bg-danger">Rejected</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.status == 'approved' %}
-                                {% if payment.progress %}
-                                    {% if payment.progress.status == 'completed' %}
-                                        <div class="d-flex align-items-center">
-                                            <div class="progress flex-grow-1 me-2" style="height: 10px;">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
-                                            <span class="badge bg-success">Completed</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="d-flex align-items-center">
-                                            <div class="progress flex-grow-1 me-2" style="height: 10px;">
-                                                <div class="progress-bar" role="progressbar" style="width: {{ payment.progress.progress_percentage }}%;" aria-valuenow="{{ payment.progress.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                            </div>
-                                            <span>{{ payment.progress.progress_percentage }}%</span>
-                                        </div>
-                                    {% endif %}
-                                {% else %}
-                                    <div class="progress" style="height: 10px;">
-                                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                {% endif %}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.status == 'approved' and not student_profile.proficiency_level %}
-                                <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
-                            {% elif payment.status == 'approved' %}
-                                <a href="{% url 'student_course_dashboard' payment.course.slug %}" class="btn btn-sm btn-primary">Go to Course</a>
-                            {% elif payment.status == 'rejected' %}
-                                <a href="{% url 'course_payment' payment.course.id %}" class="btn btn-sm btn-outline-primary">Resubmit Payment</a>
-                            {% else %}
-                                <span class="text-muted">Awaiting approval</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="text-center py-4">
-            <p>You haven't enrolled in any courses yet.</p>
-            <a href="{% url 'course_list' %}" class="btn btn-primary">Browse Courses</a>
-        </div>
-    {% endif %}
-</div>
+            <div class="card-body">
+                {% if payment_proofs %}
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payment_proofs %}
+                                <tr>
+                                    <td>{{ payment.course.title }}</td>
+                                    <td>
+                                        {% if payment.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif payment.status == 'approved' %}
+                                            <span class="badge bg-success">Approved</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if payment.status == 'approved' %}
+                                            {% if payment.progress %}
+                                                {% if payment.progress.status == 'completed' %}
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        </div>
+                                                        <span class="badge bg-success">Completed</span>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                                            <div class="progress-bar" role="progressbar" style="width: {{ payment.progress.progress_percentage }}%;" aria-valuenow="{{ payment.progress.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        </div>
+                                                        <span>{{ payment.progress.progress_percentage }}%</span>
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if payment.status == 'approved' and not student_profile.proficiency_level %}
+                                            {% for quiz in payment.course.quizzes.all %}
+                                                {% if quiz.is_placement_test and quiz.is_active %}
+                                                    <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% elif payment.status == 'approved' %}
+                                            <a href="{% url 'student_course_dashboard' payment.course.slug %}" class="btn btn-sm btn-primary">Go to Course</a>
+                                        {% elif payment.status == 'rejected' %}
+                                            <a href="{% url 'course_payment' payment.course.id %}" class="btn btn-sm btn-outline-primary">Resubmit Payment</a>
+                                        {% else %}
+                                            <span class="text-muted">Awaiting approval</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>You haven't enrolled in any courses yet.</p>
+                        <a href="{% url 'course_list' %}" class="btn btn-primary">Browse Courses</a>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
+
+{% if has_pending_placement_test %}
+<div class="row" id="placement-tests">
+    <div class="col-md-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Pending Placement Tests</h5>
+            </div>
+            <div class="card-body">
+                <p>Complete these placement tests to determine your proficiency level and customize your learning experience.</p>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Description</th>
+                                <th>Time Limit</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payment_proofs %}
+                                {% if payment.status == 'approved' %}
+                                    {% for quiz in payment.course.quizzes.all %}
+                                        {% if quiz.is_placement_test and quiz.is_active %}
+                                            <tr>
+                                                <td>{{ payment.course.title }}</td>
+                                                <td>{{ quiz.description|default:"Determine your proficiency level for this course" }}</td>
+                                                <td>{{ quiz.time_limit }} minutes</td>
+                                                <td>
+                                                    <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row">
     <!-- Upcoming Classes -->
