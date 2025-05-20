@@ -26,6 +26,9 @@
                 <h5 class="mb-0">My Profile</h5>
             </div>
             <div class="card-body">
+                {% if request.user.student_id %}
+                    <p><strong>Student ID:</strong> <span class="badge bg-primary">{{ request.user.student_id }}</span></p>
+                {% endif %}
                 <p><strong>Username:</strong> {{ request.user.username }}</p>
                 <p><strong>Email:</strong> {{ request.user.email }}</p>
                 <p><strong>Name:</strong> {{ request.user.get_full_name|default:"Not provided" }}</p>

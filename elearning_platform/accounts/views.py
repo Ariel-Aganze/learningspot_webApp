@@ -519,3 +519,40 @@ def calculate_quiz_stats(student_ids, courses):
     
     return quiz_stats, question_stats
 
+@login_required
+@user_passes_test(is_admin)
+def assign_student_id(request, student_id):
+    """View for admin to assign a unique 5-digit Student ID to a student"""
+    student = get_object_or_404(User, id=student_id, user_type='student')
+    
+    # Check if student already has an ID
+    if student.student_id:
+        messages.info(request, f"Student already has ID: {student.student_id}")
+        return redirect('admin_dashboard')
+    
+    # Find the highest existing student ID and increment by 1, starting from "00000"
+    max_id = User.objects.filter(student_id__isnull=False).exclude(student_id='').aggregate(
+        max('student_id')
+    )['student_id__max']
+    
+    if max_id:
+        # Convert the highest ID to integer and increment
+        try:
+            next_id = int(max_id) + 1
+        except ValueError:
+            # If conversion fails, start from 0
+            next_id = 0
+    else:
+        # If no IDs exist yet, start from 0
+        next_id = 0
+    
+    # Format as 5-digit string with leading zeros
+    new_id = f"{next_id:05d}"
+    
+    # Assign the new ID to the student
+    student.student_id = new_id
+    student.save()
+    
+    messages.success(request, f"Student ID {new_id} assigned to {student.get_full_name() or student.username} successfully.")
+    return redirect('admin_dashboard')
+

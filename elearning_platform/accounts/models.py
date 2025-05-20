@@ -23,6 +23,9 @@ class User(AbstractUser):
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     
+    # Student ID field for identification
+    student_id = models.CharField(max_length=5, blank=True, null=True, unique=True)
+    
     def is_teacher(self):
         return self.user_type == 'teacher'
     
