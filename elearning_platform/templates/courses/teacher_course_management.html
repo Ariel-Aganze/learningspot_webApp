@@ -198,54 +198,63 @@
                     </div>
                     
                     <!-- Students Tab -->
-                    <div class="tab-pane fade" id="students" role="tabpanel">
-                        <h4 class="mb-3">Enrolled Students</h4>
-                        
-                        {% if student_profiles %}
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            <th>Level</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for profile in student_profiles %}
-                                            <tr>
-                                                <td>{{ profile.user.get_full_name|default:profile.user.username }}</td>
-                                                <td>{{ profile.user.email }}</td>
-                                                <td>
-                                                    {% if profile.proficiency_level %}
-                                                        <span class="badge bg-primary">{{ profile.proficiency_level|title }}</span>
-                                                    {% else %}
-                                                        <span class="badge bg-secondary">Not determined</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    {% if profile.user.is_active %}
-                                                        <span class="badge bg-success">Active</span>
-                                                    {% else %}
-                                                        <span class="badge bg-danger">Inactive</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    <a href="{% url 'send_timesheet' profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <div class="alert alert-info">
-                                <p class="mb-0">No students are enrolled in this course.</p>
-                            </div>
-                        {% endif %}
-                    </div>
+                    <!-- Students Tab with Student ID field -->
+<div class="tab-pane fade" id="students" role="tabpanel">
+    <h4 class="mb-3">Enrolled Students</h4>
+    
+    {% if student_profiles %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Level</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for profile in student_profiles %}
+                        <tr>
+                            <td>
+                                {% if profile.user.student_id %}
+                                    <span class="badge bg-primary">{{ profile.user.student_id }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ profile.user.get_full_name|default:profile.user.username }}</td>
+                            <td>{{ profile.user.email }}</td>
+                            <td>
+                                {% if profile.proficiency_level %}
+                                    <span class="badge bg-primary">{{ profile.proficiency_level|title }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Not determined</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if profile.user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'send_timesheet' profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p class="mb-0">No students are enrolled in this course.</p>
+        </div>
+    {% endif %}
+</div>
                 </div>
             </div>
         </div>

@@ -20,6 +20,7 @@ from .forms import (
     TeacherAssignmentForm,
     TeacherCreateForm
 )
+from django.db.models import Max
 
 def is_admin(user):
     return user.is_staff or user.is_superuser
@@ -532,7 +533,7 @@ def assign_student_id(request, student_id):
     
     # Find the highest existing student ID and increment by 1, starting from "00000"
     max_id = User.objects.filter(student_id__isnull=False).exclude(student_id='').aggregate(
-        max('student_id')
+        Max('student_id')
     )['student_id__max']
     
     if max_id:
