@@ -13,6 +13,9 @@ from events.models import TimeOption
  
 from .models import User, StudentProfile, PaymentProof
 from .forms import (
+    PasswordChangeForm,
+    StudentProfileUpdateForm,
+    TeacherProfileUpdateForm,
     UserRegisterForm, 
     OrganizationForm, 
     CustomAuthenticationForm, 
@@ -557,3 +560,77 @@ def assign_student_id(request, student_id):
     messages.success(request, f"Student ID {new_id} assigned to {student.get_full_name() or student.username} successfully.")
     return redirect('admin_dashboard')
 
+@login_required
+def update_profile(request):
+    """View for students to update their profile information and password"""
+    # Check if user is a student
+    if not request.user.user_type == 'student':
+        messages.error(request, "Only students can access this page.")
+        return redirect('home')
+    
+    # Handle profile update form
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            profile_form = StudentProfileUpdateForm(request.POST, instance=request.user)
+            password_form = PasswordChangeForm(user=request.user)
+            
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Your profile has been updated successfully!")
+                return redirect('update_profile')
+                
+        # Handle password change form
+        elif 'change_password' in request.POST:
+            profile_form = StudentProfileUpdateForm(instance=request.user)
+            password_form = PasswordChangeForm(request.user, request.POST)
+            
+            if password_form.is_valid():
+                password_form.save()
+                # Re-authenticate the user with new password
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, request.user)  # Keep the user logged in
+                messages.success(request, "Your password has been changed successfully!")
+                return redirect('update_profile')
+    else:
+        profile_form = StudentProfileUpdateForm(instance=request.user)
+        password_form = PasswordChangeForm(user=request.user)
+    
+    return render(request, 'accounts/update_profile.html', {
+        'profile_form': profile_form,
+        'password_form': password_form
+    })
+
+@login_required
+@user_passes_test(is_teacher)
+def teacher_update_profile(request):
+    """View for teachers to update their profile information and password"""
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            profile_form = TeacherProfileUpdateForm(request.POST, instance=request.user)
+            password_form = PasswordChangeForm(user=request.user)
+            
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Your profile has been updated successfully!")
+                return redirect('teacher_update_profile')
+                
+        # Handle password change form
+        elif 'change_password' in request.POST:
+            profile_form = TeacherProfileUpdateForm(instance=request.user)
+            password_form = PasswordChangeForm(request.user, request.POST)
+            
+            if password_form.is_valid():
+                password_form.save()
+                # Re-authenticate the user with new password
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, request.user)  # Keep the user logged in
+                messages.success(request, "Your password has been changed successfully!")
+                return redirect('teacher_update_profile')
+    else:
+        profile_form = TeacherProfileUpdateForm(instance=request.user)
+        password_form = PasswordChangeForm(user=request.user)
+    
+    return render(request, 'accounts/teacher_update_profile.html', {
+        'profile_form': profile_form,
+        'password_form': password_form
+    })

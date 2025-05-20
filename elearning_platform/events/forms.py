@@ -56,7 +56,21 @@ class TimeOptionSelectionForm(forms.ModelForm):
             'is_selected': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
+class StudentModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, student):
+        # Format: [ID] Name (or username if name not available)
+        student_id = student.student_id if student.student_id else "N/A"
+        display_name = student.get_full_name() if student.get_full_name() else student.username
+        return f"[{student_id}] {display_name}"
+
 class EventForm(forms.ModelForm):
+    # Override the students field with our custom field
+    students = StudentModelMultipleChoiceField(
+        queryset=User.objects.none(),  # Will be set in __init__
+        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
+        required=True
+    )
+    
     class Meta:
         model = Event
         fields = ['title', 'description', 'start_datetime', 'end_datetime', 'meeting_link', 'additional_info', 'students']
@@ -67,7 +81,6 @@ class EventForm(forms.ModelForm):
             'end_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'meeting_link': forms.URLInput(attrs={'class': 'form-control'}),
             'additional_info': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'students': forms.SelectMultiple(attrs={'class': 'form-control'})
         }
     
     def __init__(self, teacher=None, *args, **kwargs):
@@ -75,6 +88,13 @@ class EventForm(forms.ModelForm):
         
         if teacher:
             # Filter students to only show those assigned to this teacher
-            self.fields['students'].queryset = User.objects.filter(
-            student_profile__assigned_teacher=teacher,
-            is_active=True)
+            students_queryset = User.objects.filter(
+                student_profile__assigned_teacher=teacher,
+                is_active=True
+            )
+            
+            self.fields['students'].queryset = students_queryset
+            
+            # If we're editing an existing event, set initial students
+            if self.instance and self.instance.pk:
+                self.fields['students'].initial = self.instance.students.all()

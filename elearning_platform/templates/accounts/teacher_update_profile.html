@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Update Profile - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Update Your Profile</h1>
+        <p class="lead">Update your teacher information and settings</p>
+        <div class="alert alert-info">
+            <p class="mb-0">You can update any field individually. Leave fields blank to keep their current values.</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Profile Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white" style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 class="mb-0">Personal Information</h5>
+                <span class="text-muted small">All fields optional</span>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if profile_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ profile_form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ profile_form.username|as_crispy_field }}
+                            <div class="form-text">Current: {{ request.user.username }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ profile_form.email|as_crispy_field }}
+                            <div class="form-text">Current: {{ request.user.email }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ profile_form.first_name|as_crispy_field }}
+                            <div class="form-text">Current: {{ request.user.first_name|default:"Not set" }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ profile_form.last_name|as_crispy_field }}
+                            <div class="form-text">Current: {{ request.user.last_name|default:"Not set" }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ profile_form.phone_number|as_crispy_field }}
+                        <div class="form-text">Current: {{ request.user.phone_number|default:"Not set" }}</div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Change Password -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white" style="display: flex; justify-content: space-between; align-items: center;">
+                <h5 class="mb-0">Change Password</h5>
+                <span class="text-muted small">All fields required</span>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if password_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ password_form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {{ password_form.current_password|as_crispy_field }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ password_form.new_password1|as_crispy_field }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ password_form.new_password2|as_crispy_field }}
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" name="change_password" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Information (Read-Only) -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Account Type:</strong> Teacher</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Registration Date:</strong> {{ request.user.date_joined|date:"F j, Y" }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Last Login:</strong> {{ request.user.last_login|date:"F j, Y H:i" }}</p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Students Assigned:</strong> {{ request.user.assigned_students.count }}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -22,4 +22,8 @@ urlpatterns = [
     # URL pattern for assigning student IDs
     path('assign/student-id/<int:student_id>/', views.assign_student_id, name='assign_student_id'),
 
+    path('profile/update/', views.update_profile, name='update_profile'),
+
+    path('profile/teacher/update/', views.teacher_update_profile, name='teacher_update_profile'),
+
 ]

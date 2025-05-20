@@ -24,6 +24,8 @@
         <div class="card shadow h-100">
             <div class="card-header bg-white">
                 <h5 class="mb-0">My Profile</h5>
+                <a href="{% url 'update_profile' %}" class="btn btn-sm btn-outline-primary">Edit Profile</a>
+
             </div>
             <div class="card-body">
                 {% if request.user.student_id %}

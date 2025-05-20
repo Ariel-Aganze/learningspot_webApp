@@ -269,12 +269,16 @@
         <div class="card shadow h-100">
             <div class="card-header bg-white">
                 <h5 class="mb-0">My Profile</h5>
+                        <a href="{% url 'teacher_update_profile' %}" class="btn btn-sm btn-outline-primary">Edit Profile</a>
+
             </div>
             <div class="card-body">
                 <p><strong>Username:</strong> {{ request.user.username }}</p>
                 <p><strong>Email:</strong> {{ request.user.email }}</p>
                 <p><strong>Name:</strong> {{ request.user.get_full_name|default:"Not provided" }}</p>
                 <p><strong>Phone:</strong> {{ request.user.phone_number|default:"Not provided" }}</p>
+                <p><strong>Students Assigned:</strong> {{ assigned_students.count }}</p>
+                <p><strong>Courses Taught:</strong> {{ teacher_courses.count }}</p>
             </div>
         </div>
     </div>
