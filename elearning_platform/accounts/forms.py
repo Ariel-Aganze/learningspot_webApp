@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 from courses.models import Course
-from .models import CoursePeriod, User, PaymentProof, StudentProfile
+from .models import CoursePeriod, Organization, User, PaymentProof, StudentProfile
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -319,3 +319,43 @@ class CoursePeriodForm(forms.ModelForm):
                 raise forms.ValidationError("Course period must be at least 1 day long.")
         
         return cleaned_data
+    
+# accounts/forms.py
+
+class OrganizationForm(forms.ModelForm):
+    """Form for creating and updating organizations"""
+    class Meta:
+        model = Organization
+        fields = [
+            'name', 'contact_person', 'contact_email', 
+            'contact_phone', 'contact_position',
+            'start_date', 'end_date'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
+            'contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'contact_position': forms.TextInput(attrs={'class': 'form-control'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+
+# accounts/forms.py
+
+class StudentCreationForm(forms.ModelForm):
+    """Form for creating student accounts by admin"""
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    organization = forms.ModelChoiceField(
+        queryset=Organization.objects.filter(is_active=True),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        empty_label="No Organization (Individual Student)"
+    )
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'password', 'organization']

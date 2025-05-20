@@ -52,3 +52,26 @@ class CourseAccessMiddleware:
                 pass
         
         return self.get_response(request)
+    
+class OrganizationSubscriptionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Process request before view is called
+        if request.user.is_authenticated and hasattr(request.user, 'student_profile'):
+            # Check if user is a student with an organization
+            profile = request.user.student_profile
+            if profile.organization and not profile.organization.is_subscription_active:
+                # Only block access to course content, not the entire site
+                path = request.path
+                # Assuming course content is under /courses/
+                if path.startswith('/courses/') and not path.startswith('/courses/placement-test/'):
+                    messages.warning(
+                        request, 
+                        "Your organization's subscription has expired. Please contact your administrator."
+                    )
+                    return redirect(reverse('student_dashboard'))
+        
+        response = self.get_response(request)
+        return response

@@ -32,4 +32,14 @@ urlpatterns = [
     path('password-reset/done/', views.password_reset_done, name='password_reset_done'),
     path('password-reset/<uidb64>/<token>/', views.password_reset_confirm, name='password_reset_confirm'),
 
+    # accounts/urls.py
+
+    path('organizations/create/', views.create_organization, name='create_organization'),
+    path('organizations/<int:organization_id>/update/', views.update_organization, name='update_organization'),
+    path('organizations/<int:organization_id>/set-period/', views.set_organization_period, name='set_organization_period'),
+
+    path('students/create/', views.create_student, name='create_student'),
+    
+
+
 ]

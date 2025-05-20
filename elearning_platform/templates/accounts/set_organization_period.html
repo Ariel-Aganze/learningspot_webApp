@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Set Organization Period - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Set Subscription Period</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">{{ organization.name }}</h5>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" name="start_date" id="start_date" class="form-control" value="{{ organization.start_date|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" name="end_date" id="end_date" class="form-control" value="{{ organization.end_date|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="alert alert-info mb-3">
+                            <strong>Note:</strong> Once the end date is reached, students from this organization will no longer have access to courses until the subscription is renewed.
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'admin_dashboard' %}#organizations" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Period</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

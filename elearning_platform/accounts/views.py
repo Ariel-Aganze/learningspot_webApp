@@ -11,10 +11,11 @@ from courses.models import Assignment, Course, CourseMaterial, CourseProgress
 from events.forms import EventForm
 from events.models import TimeOption
  
-from .models import CoursePeriod, User, StudentProfile, PaymentProof
+from .models import CoursePeriod, Organization, User, StudentProfile, PaymentProof
 from .forms import (
     CoursePeriodForm,
     PasswordChangeForm,
+    StudentCreationForm,
     StudentProfileUpdateForm,
     TeacherProfileUpdateForm,
     UserRegisterForm, 
@@ -36,6 +37,10 @@ from django.template.loader import render_to_string
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.urls import reverse
+from .models import User, StudentProfile, Organization, CourseApproval
+from datetime import datetime  
+
+
 
 def is_admin(user):
     return user.is_staff or user.is_superuser
@@ -331,12 +336,15 @@ def teacher_dashboard(request):
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    from accounts.models import Organization  # Add this import
 
     # Get all data with proper ordering
     pending_payments = PaymentProof.objects.filter(status='pending').order_by('-submitted_at')
     students = User.objects.filter(user_type='student').order_by('-date_joined')
     teachers = User.objects.filter(user_type='teacher').order_by('-date_joined')
-    organizations = User.objects.filter(is_organization=True).order_by('-date_joined')
+    
+    # Updated to use Organization model
+    organizations = Organization.objects.all().order_by('-created_at')
     
     # Get assignments data with submission counts
     assignments = Assignment.objects.all().order_by('-created_at')
@@ -381,21 +389,14 @@ def admin_dashboard(request):
     
     # Context with paginated data
     context = {
-        # Original querysets (not needed anymore since we're using paginated versions)
-        # 'pending_payments': pending_payments,
-        # 'students': students,
-        # 'teachers': teachers,
-        # 'organizations': organizations,
-        # 'assignments': assignments,
-        # 'materials': materials,
-        
         # Paginated versions
-        'pending_payments': pending_payments_page,  # Using same name as template expects
+        'pending_payments': pending_payments_page,
         'students': students_page,
         'teachers': teachers_page,
         'organizations': organizations_page,
         'assignments': assignments_page,
         'materials': materials_page,
+        'now': timezone.now(),
     }
     
     return render(request, 'accounts/admin_dashboard.html', context)
@@ -812,3 +813,123 @@ def password_reset_confirm(request, uidb64, token):
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         # Invalid user id
         return render(request, 'accounts/password_reset_confirm.html', {'validlink': False})
+    
+# accounts/views.py
+
+@login_required
+@user_passes_test(is_admin)
+def create_organization(request):
+    """View for admin to create a new organization"""
+    if request.method == 'POST':
+        form = OrganizationForm(request.POST)
+        if form.is_valid():
+            organization = form.save()
+            messages.success(request, f"Organization '{organization.name}' created successfully.")
+            return redirect('admin_dashboard')
+    else:
+        form = OrganizationForm()
+    
+    return render(request, 'accounts/organization_form.html', {
+        'form': form,
+        'title': 'Create Organization'
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def update_organization(request, organization_id):
+    """View for admin to update an organization"""
+    organization = get_object_or_404(Organization, id=organization_id)
+    
+    if request.method == 'POST':
+        form = OrganizationForm(request.POST, instance=organization)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Organization '{organization.name}' updated successfully.")
+            return redirect('admin_dashboard')
+    else:
+        form = OrganizationForm(instance=organization)
+    
+    return render(request, 'accounts/organization_form.html', {
+        'form': form,
+        'organization': organization,
+        'title': 'Update Organization'
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def set_organization_period(request, organization_id):
+    """View for admin to set/update subscription period for an organization"""
+    organization = get_object_or_404(Organization, id=organization_id)
+    
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        
+        if start_date and end_date:
+            # Convert to dates
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            
+            if end_date < start_date:
+                messages.error(request, "End date cannot be before start date.")
+            else:
+                organization.start_date = start_date
+                organization.end_date = end_date
+                organization.save()
+                messages.success(request, f"Subscription period for '{organization.name}' set successfully.")
+                return redirect('admin_dashboard')
+    
+    return render(request, 'accounts/set_organization_period.html', {
+        'organization': organization
+    })
+
+# accounts/views.py
+
+@login_required
+@user_passes_test(is_admin)
+def create_student(request):
+    """View for admin to create a student account"""
+    if request.method == 'POST':
+        form = StudentCreationForm(request.POST)
+        if form.is_valid():
+            # Get form data
+            email = form.cleaned_data.get('email')
+            password = form.cleaned_data.get('password')
+            first_name = form.cleaned_data.get('first_name')
+            last_name = form.cleaned_data.get('last_name')
+            organization = form.cleaned_data.get('organization')
+            
+            # Create user with student type
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                user_type='student'
+            )
+            
+            # Create student profile and connect to organization if selected
+            student_profile, created = StudentProfile.objects.get_or_create(user=user)
+            if organization:
+                student_profile.organization = organization
+                student_profile.save()
+                
+                # If student is from an organization, exempt from placement test payment
+                if organization.is_subscription_active:
+                    # Automatically create a placement test approval
+                    CourseApproval.objects.create(
+                        student=user,
+                        is_placement_test_paid=True,
+                        approved_by=request.user,
+                        approval_date=timezone.now()
+                    )
+            
+            messages.success(request, f"Student account for {user.get_full_name()} created successfully.")
+            return redirect('admin_dashboard')
+    else:
+        form = StudentCreationForm()
+    
+    return render(request, 'accounts/create_student.html', {
+        'form': form,
+    })

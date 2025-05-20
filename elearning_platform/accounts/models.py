@@ -111,3 +111,119 @@ class CoursePeriod(models.Model):
         """Get the number of days remaining in the course period"""
         today = timezone.now().date()
         return max(0, (self.end_date - today).days)
+
+
+class Organization(models.Model):
+    """Model for organizations purchasing courses for their employees"""
+    name = models.CharField(max_length=255)
+    contact_person = models.CharField(max_length=255)
+    contact_email = models.EmailField()
+    contact_phone = models.CharField(max_length=50, blank=True, null=True)
+    contact_position = models.CharField(max_length=255, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # New fields for period management
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    
+    def __str__(self):
+        return self.name
+    
+    @property
+    def is_subscription_active(self):
+        """Check if the organization's subscription is active"""
+        if not self.start_date or not self.end_date:
+            return False
+    
+        from django.utils import timezone
+        today = timezone.now().date()
+    
+        # A subscription is active if today is between start_date and end_date (inclusive)
+        return self.is_active and self.start_date <= today <= self.end_date
+    
+    
+
+class StudentProfile(models.Model):
+    """
+    Extended profile model for student users
+    Stores additional information about students beyond the base User model
+    """
+    PROFICIENCY_LEVELS = (
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    )
+    
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='student_profile'
+    )
+    organization = models.ForeignKey(
+        Organization, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='students'
+    )
+    proficiency_level = models.CharField(
+        max_length=20,
+        choices=PROFICIENCY_LEVELS,
+        blank=True, 
+        null=True
+    )
+    assigned_teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_students',
+        limit_choices_to={'user_type': 'teacher'}
+    )
+    student_id = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        unique=True
+    )
+    
+    def __str__(self):
+        """String representation of the student profile"""
+        return f"{self.user.get_full_name()}'s Profile"
+    
+    class Meta:
+        """Meta options for the StudentProfile model"""
+        verbose_name = "Student Profile"
+        verbose_name_plural = "Student Profiles"
+        ordering = ['user__first_name', 'user__last_name']
+    
+    def get_full_name(self):
+        """Returns the student's full name"""
+        return self.user.get_full_name()
+    
+    def get_courses(self):
+        """Returns a queryset of courses this student is enrolled in"""
+        return self.user.course_periods.all().values_list('course', flat=True)
+    
+
+class CourseApproval(models.Model):
+    """Model for course and placement test approvals"""
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_approvals')
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, null=True, blank=True)
+    is_placement_test_paid = models.BooleanField(default=False)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='approvals_given')
+    approval_date = models.DateTimeField(auto_now_add=True)
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    payment_reference = models.CharField(max_length=100, blank=True, null=True)
+    
+    def __str__(self):
+        if self.course:
+            return f"{self.student} - {self.course}"
+        else:
+            return f"{self.student} - Placement Test"
+            
+    class Meta:
+        verbose_name = "Course Approval"
+        verbose_name_plural = "Course Approvals"
