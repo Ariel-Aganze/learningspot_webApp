@@ -17,6 +17,18 @@
                     <div class="text-center mt-4">
                         <button type="submit" class="btn btn-primary">Login</button>
                     </div>
+
+                    <div class="mb-3">
+        <div class="d-flex justify-content-between">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+            <div>
+                <a href="{% url 'forgot_password' %}" class="text-decoration-none">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
                 </form>
                 <div class="text-center mt-3">
                     <p>Don't have an account? <a href="{% url 'signup' %}">Sign Up</a></p>

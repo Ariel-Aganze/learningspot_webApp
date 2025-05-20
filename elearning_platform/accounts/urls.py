@@ -28,4 +28,8 @@ urlpatterns = [
 
     path('course-periods/<int:student_id>/', views.set_course_periods, name='set_course_periods'),
 
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('password-reset/done/', views.password_reset_done, name='password_reset_done'),
+    path('password-reset/<uidb64>/<token>/', views.password_reset_confirm, name='password_reset_confirm'),
+
 ]

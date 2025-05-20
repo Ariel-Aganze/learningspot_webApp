@@ -144,137 +144,128 @@
                 </div>
             </div>
             
-            <!-- Students Tab -->
-            <div class="tab-pane fade" id="students" role="tabpanel">
-                <div class="card shadow">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Student Management</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if students %}
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Student ID</th>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Level</th>
-                                        <th>Teacher</th>
-                                        <th>Status</th>
-                                        <th>Period</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for student in students %}
-                                    <tr>
-                                        <td>
-                                            {% if student.student_id %}
-                                                <span class="badge bg-primary">{{ student.student_id }}</span>
-                                            {% else %}
-                                                <a href="{% url 'assign_student_id' student.id %}" class="btn btn-sm btn-outline-primary">Assign ID</a>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ student.get_full_name|default:student.username }}</td>
-                                        <td>{{ student.email }}</td>
-                                        <td>
-                                            {% if student.student_profile.proficiency_level %}
-                                                <span class="badge bg-primary">{{ student.student_profile.proficiency_level|title }}</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">Not determined</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.student_profile.assigned_teacher %}
-                                                {{ student.student_profile.assigned_teacher.get_full_name }}
-                                            {% else %}
-                                                <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.is_active %}
-                                                <span class="badge bg-success">Active</span>
-                                            {% else %}
-                                                <span class="badge bg-danger">Inactive</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if student.start_date and student.end_date %}
-                                                {{ student.start_date|date }} - {{ student.end_date|date }}
-                                            {% else %}
-                                                <a href="{% url 'set_student_dates' student.id %}" class="btn btn-sm btn-outline-primary">Set Dates</a>
-                                            {% endif %}
-                                        </td>
-                                        <!-- In the Students Tab, update the Actions column -->
-                                        <td>
-                                            <div class="btn-group">
-                                                {% if student.student_profile.assigned_teacher %}
-                                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Change Teacher</a>
-                                                {% else %}
-                                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
-                                                {% endif %}
-                                                <a href="{% url 'set_course_periods' student.id %}" class="btn btn-sm btn-outline-info">Set Course Periods</a>
-                                                <form method="post" action="{% url 'toggle_user_status' student.id %}" class="d-inline">
-                                                    {% csrf_token %}
-                                                    {% if student.is_active %}
-                                                        <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
-                                                    {% else %}
-                                                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
-                                                    {% endif %}
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- Pagination for Students -->
-                        {% if students.has_other_pages %}
-                        <nav aria-label="Students pagination">
-                            <ul class="pagination justify-content-center">
-                                {% if students.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ students.previous_page_number }}#students" tabindex="-1">Previous</a>
-                                </li>
+<!-- Students Tab -->
+<div class="tab-pane fade" id="students" role="tabpanel">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Student Management</h5>
+        </div>
+        <div class="card-body">
+            {% if students %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Level</th>
+                            <th>Teacher</th>
+                            <th>Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>
+                                {% if student.student_id %}
+                                    <span class="badge bg-primary">{{ student.student_id }}</span>
                                 {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Previous</span>
-                                </li>
+                                    <a href="{% url 'assign_student_id' student.id %}" class="btn btn-sm btn-outline-primary w-100">Assign ID</a>
                                 {% endif %}
-                                
-                                {% for i in students.paginator.page_range %}
-                                {% if students.number == i %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ i }}</span>
-                                </li>
+                            </td>
+                            <td>{{ student.get_full_name|default:student.username }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>
+                                {% if student.student_profile.proficiency_level %}
+                                    <span class="badge bg-primary">{{ student.student_profile.proficiency_level|title }}</span>
                                 {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ i }}#students">{{ i }}</a>
-                                </li>
+                                    <span class="badge bg-secondary">Not determined</span>
                                 {% endif %}
-                                {% endfor %}
-                                
-                                {% if students.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?students_page={{ students.next_page_number }}#students">Next</a>
-                                </li>
+                            </td>
+                            <td>
+                                {% if student.student_profile.assigned_teacher %}
+                                    {{ student.student_profile.assigned_teacher.get_full_name }}
                                 {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Next</span>
-                                </li>
+                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary w-100">Assign</a>
                                 {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="alert alert-info">No students registered yet.</div>
-                        {% endif %}
-                    </div>
-                </div>
+                            </td>
+                            <td>
+                                {% if student.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    {% if student.student_profile.assigned_teacher %}
+                                        <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Change Teacher</a>
+                                    {% else %}
+                                        <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
+                                    {% endif %}
+                                    <a href="{% url 'set_course_periods' student.id %}" class="btn btn-sm btn-outline-info">Set Course Periods</a>
+                                    <form method="post" action="{% url 'toggle_user_status' student.id %}" class="m-0">
+                                        {% csrf_token %}
+                                        {% if student.is_active %}
+                                            <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            
+            <!-- Pagination for Students remains unchanged -->
+            {% if students.has_other_pages %}
+            <nav aria-label="Students pagination">
+                <ul class="pagination justify-content-center">
+                    {% if students.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?students_page={{ students.previous_page_number }}#students" tabindex="-1">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in students.paginator.page_range %}
+                    {% if students.number == i %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?students_page={{ i }}#students">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if students.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?students_page={{ students.next_page_number }}#students">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">No students registered yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
             
             <!-- Teachers Tab -->
             <div class="tab-pane fade" id="teachers" role="tabpanel">

@@ -121,3 +121,13 @@ CSRF_TRUSTED_ORIGINS = [
     'https://9570-2c0f-eb68-64d-8500-2530-5f32-e70c-2746.ngrok-free.app',
     # Add more domains if needed
 ]
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'arielaganze@gmail.com'  # Use a real email address
+EMAIL_HOST_PASSWORD = 'lwaj qfto velt oeti'  # Use an app password for Gmail
+DEFAULT_FROM_EMAIL = 'E-Learning Platform <arielaganze@gmail.com>'
+SITE_NAME = 'E-Learning Platform'

@@ -299,8 +299,8 @@ class CoursePeriodForm(forms.ModelForm):
         # If student is provided, get their approved courses
         if student:
             approved_courses = Course.objects.filter(
-                payment_proofs__user=student,
-                payment_proofs__status='approved'
+                paymentproof__user=student,
+                paymentproof__status='approved'
             ).distinct()
             
             self.fields['course'].queryset = approved_courses

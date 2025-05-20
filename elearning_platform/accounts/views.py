@@ -26,6 +26,17 @@ from .forms import (
 )
 from django.db.models import Max
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.urls import reverse
+
 def is_admin(user):
     return user.is_staff or user.is_superuser
 
@@ -720,3 +731,84 @@ def set_course_periods(request, student_id):
         'edit_forms': edit_forms,
         'existing_periods': existing_periods
     })
+
+User = get_user_model()
+
+
+def forgot_password(request):
+    """View for initiating the password reset process"""
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            # Generate token
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            # Build the reset URL
+            reset_url = request.build_absolute_uri(
+                reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+            )
+            
+            # Prepare email
+            subject = 'Reset Your Password'
+            message = render_to_string('accounts/password_reset_email.html', {
+                'user': user,
+                'reset_url': reset_url,
+                'site_name': settings.SITE_NAME,
+            })
+            
+            # Send email
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+                html_message=message,
+            )
+            
+            messages.success(request, 'Password reset instructions have been sent to your email.')
+            return redirect('password_reset_done')
+        except User.DoesNotExist:
+            # Don't reveal if the email exists for security reasons
+            messages.success(request, 'Password reset instructions have been sent to your email if the account exists.')
+            return redirect('password_reset_done')
+    
+    return render(request, 'accounts/forgot_password.html')
+
+def password_reset_done(request):
+    """View shown after password reset email is sent"""
+    return render(request, 'accounts/password_reset_done.html')
+
+def password_reset_confirm(request, uidb64, token):
+    """View for confirming the reset token and setting new password"""
+    try:
+        # Decode the user id
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+        
+        # Verify token
+        if default_token_generator.check_token(user, token):
+            if request.method == 'POST':
+                # Process the form
+                password1 = request.POST.get('password1')
+                password2 = request.POST.get('password2')
+                
+                if password1 and password2 and password1 == password2:
+                    # Set new password
+                    user.set_password(password1)
+                    user.save()
+                    messages.success(request, 'Your password has been reset successfully. You can now log in with your new password.')
+                    return redirect('login')
+                else:
+                    messages.error(request, 'Passwords do not match.')
+            
+            # Show the form
+            return render(request, 'accounts/password_reset_confirm.html', {'validlink': True})
+        else:
+            # Invalid token
+            return render(request, 'accounts/password_reset_confirm.html', {'validlink': False})
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        # Invalid user id
+        return render(request, 'accounts/password_reset_confirm.html', {'validlink': False})

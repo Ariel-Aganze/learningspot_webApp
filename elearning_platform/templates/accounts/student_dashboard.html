@@ -20,44 +20,42 @@
 
 <div class="row">
     <!-- Profile Information -->
-    <div class="col-md-4 mb-4">
-        <div class="card shadow h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">My Profile</h5>
-                <a href="{% url 'update_profile' %}" class="btn btn-sm btn-outline-primary">Edit Profile</a>
-
-            </div>
-            <div class="card-body">
-                {% if request.user.student_id %}
-                    <p><strong>Student ID:</strong> <span class="badge bg-primary">{{ request.user.student_id }}</span></p>
-                {% endif %}
-                <p><strong>Username:</strong> {{ request.user.username }}</p>
-                <p><strong>Email:</strong> {{ request.user.email }}</p>
-                <p><strong>Name:</strong> {{ request.user.get_full_name|default:"Not provided" }}</p>
-                <p><strong>Phone:</strong> {{ request.user.phone_number|default:"Not provided" }}</p>
-                
-                {% if student_profile.proficiency_level %}
-                    <p><strong>Proficiency Level:</strong> 
-                        <span class="badge bg-primary">{{ student_profile.proficiency_level|title }}</span>
-                    </p>
-                {% else %}
-                    <p><strong>Proficiency Level:</strong> 
-                        <span class="badge bg-secondary">Not determined yet</span>
-                    </p>
-                {% endif %}
-                
-                {% if student_profile.assigned_teacher %}
-                    <p><strong>Assigned Teacher:</strong> {{ student_profile.assigned_teacher.get_full_name }}</p>
-                {% else %}
-                    <p><strong>Assigned Teacher:</strong> Not assigned yet</p>
-                {% endif %}
-                
-                {% if request.user.start_date and request.user.end_date %}
-                    <p><strong>Course Period:</strong> {{ request.user.start_date }} to {{ request.user.end_date }}</p>
-                {% endif %}
-            </div>
-        </div>
+<!-- Profile Card with explicit styling to ensure button placement -->
+<div class="card shadow h-100">
+    <div class="card-header bg-white" style="display: flex; justify-content: space-between; align-items: center;">
+        <h5 class="mb-0">My Profile</h5>
+        <a href="{% url 'update_profile' %}" class="btn btn-sm btn-outline-primary" style="margin-left: auto;">Edit Profile</a>
     </div>
+    <div class="card-body">
+        {% if request.user.student_id %}
+            <p><strong>Student ID:</strong> <span class="badge bg-primary">{{ request.user.student_id }}</span></p>
+        {% endif %}
+        <p><strong>Username:</strong> {{ request.user.username }}</p>
+        <p><strong>Email:</strong> {{ request.user.email }}</p>
+        <p><strong>Name:</strong> {{ request.user.get_full_name|default:"Not provided" }}</p>
+        <p><strong>Phone:</strong> {{ request.user.phone_number|default:"Not provided" }}</p>
+        
+        {% if student_profile.proficiency_level %}
+            <p><strong>Proficiency Level:</strong> 
+                <span class="badge bg-primary">{{ student_profile.proficiency_level|title }}</span>
+            </p>
+        {% else %}
+            <p><strong>Proficiency Level:</strong> 
+                <span class="badge bg-secondary">Not determined yet</span>
+            </p>
+        {% endif %}
+        
+        {% if student_profile.assigned_teacher %}
+            <p><strong>Assigned Teacher:</strong> {{ student_profile.assigned_teacher.get_full_name }}</p>
+        {% else %}
+            <p><strong>Assigned Teacher:</strong> Not assigned yet</p>
+        {% endif %}
+        
+        {% if request.user.start_date and request.user.end_date %}
+            <p><strong>Course Period:</strong> {{ request.user.start_date }} to {{ request.user.end_date }}</p>
+        {% endif %}
+    </div>
+</div>
     
 {% if ending_soon_periods %}
 <div class="row mb-4">
