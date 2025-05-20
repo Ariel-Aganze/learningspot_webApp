@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Set Course Periods - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Set Course Periods</h1>
+        <p class="lead">Set course access periods for {{ student.get_full_name|default:student.username }}</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Existing Course Periods -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Current Course Periods</h5>
+            </div>
+            <div class="card-body">
+                {% if existing_periods %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for period in existing_periods %}
+                                    <tr>
+                                        <td>{{ period.course.title }}</td>
+                                        <td>{{ period.start_date|date:"M d, Y" }}</td>
+                                        <td>{{ period.end_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {% if period.is_expired %}
+                                                <span class="badge bg-danger">Expired</span>
+                                            {% elif period.is_ending_soon %}
+                                                <span class="badge bg-warning">Ending Soon ({{ period.days_remaining }} days)</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Active ({{ period.days_remaining }} days left)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPeriodModal-{{ period.id }}">
+                                                Edit
+                                            </button>
+                                            <form method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this course period?');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="period_id" value="{{ period.id }}">
+                                                <button type="submit" name="delete_period" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No course periods have been set for this student yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add New Course Period -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Add New Course Period</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.course|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.start_date|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.end_date|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button type="submit" name="add_new_period" class="btn btn-primary">Add Course Period</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Period Modals -->
+{% for edit_item in edit_forms %}
+    <div class="modal fade" id="editPeriodModal-{{ edit_item.period.id }}" tabindex="-1" aria-labelledby="editPeriodModalLabel-{{ edit_item.period.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPeriodModalLabel-{{ edit_item.period.id }}">Edit Course Period</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" id="editPeriodForm-{{ edit_item.period.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="course_period_id" value="{{ edit_item.period.id }}">
+                        
+                        <div class="mb-3">
+                            {{ edit_item.form.course|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ edit_item.form.start_date|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ edit_item.form.end_date|as_crispy_field }}
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="editPeriodForm-{{ edit_item.period.id }}" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+{% endblock %}

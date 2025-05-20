@@ -26,4 +26,6 @@ urlpatterns = [
 
     path('profile/teacher/update/', views.teacher_update_profile, name='teacher_update_profile'),
 
+    path('course-periods/<int:student_id>/', views.set_course_periods, name='set_course_periods'),
+
 ]

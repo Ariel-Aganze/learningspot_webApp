@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import User, PaymentProof, StudentProfile
+
+from courses.models import Course
+from .models import CoursePeriod, User, PaymentProof, StudentProfile
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -278,3 +280,42 @@ class TeacherProfileUpdateForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+    
+
+class CoursePeriodForm(forms.ModelForm):
+    """Form for setting course periods for students"""
+    class Meta:
+        model = CoursePeriod
+        fields = ['course', 'start_date', 'end_date']
+        widgets = {
+            'course': forms.Select(attrs={'class': 'form-control'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+        }
+    
+    def __init__(self, student=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # If student is provided, get their approved courses
+        if student:
+            approved_courses = Course.objects.filter(
+                payment_proofs__user=student,
+                payment_proofs__status='approved'
+            ).distinct()
+            
+            self.fields['course'].queryset = approved_courses
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        
+        if start_date and end_date:
+            if end_date < start_date:
+                raise forms.ValidationError("End date cannot be before start date.")
+            
+            # Ensure the period is at least 1 day long
+            if (end_date - start_date).days < 1:
+                raise forms.ValidationError("Course period must be at least 1 day long.")
+        
+        return cleaned_data

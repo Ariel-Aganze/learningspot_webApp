@@ -11,8 +11,9 @@ from courses.models import Assignment, Course, CourseMaterial, CourseProgress
 from events.forms import EventForm
 from events.models import TimeOption
  
-from .models import User, StudentProfile, PaymentProof
+from .models import CoursePeriod, User, StudentProfile, PaymentProof
 from .forms import (
+    CoursePeriodForm,
     PasswordChangeForm,
     StudentProfileUpdateForm,
     TeacherProfileUpdateForm,
@@ -108,7 +109,16 @@ def student_dashboard(request):
     student_profile = StudentProfile.objects.get(user=request.user)
     payment_proofs = PaymentProof.objects.filter(user=request.user)
     
-    # Add course progress data
+    # Get course periods for this student
+    course_periods = CoursePeriod.objects.filter(student=request.user)
+    
+    # Create a dictionary to map courses to their periods
+    course_period_dict = {period.course_id: period for period in course_periods}
+    
+    # Get courses ending soon (within 3 days)
+    ending_soon_periods = [period for period in course_periods if period.is_ending_soon()]
+    
+    # Add course progress and period data to payment proofs
     for payment in payment_proofs:
         if payment.status == 'approved':
             try:
@@ -121,39 +131,36 @@ def student_dashboard(request):
                 payment.progress = progress
             except:
                 payment.progress = None
+            
+            # Add course period if it exists
+            payment.course_period = course_period_dict.get(payment.course.id)
     
     # Check for pending placement tests
-    has_pending_placement_test = PaymentProof.objects.filter(
-        user=request.user, 
-        status='approved'
-    ).filter(
-        course__quizzes__is_placement_test=True,
-        course__quizzes__is_active=True
-    ).exists()
+    has_pending_placement_test = False
+    for payment in payment_proofs:
+        if payment.status == 'approved':
+            # Only consider courses that are within their access period or don't have a period set
+            course_period = course_period_dict.get(payment.course.id)
+            if not course_period or (course_period and course_period.is_active()):
+                # Check if there's a placement test for this course
+                has_placement_test = payment.course.quizzes.filter(
+                    is_placement_test=True,
+                    is_active=True
+                ).exists()
+                
+                if has_placement_test and not student_profile.proficiency_level:
+                    has_pending_placement_test = True
+                    break
     
-    # Get courses where student already has proficiency level
-    proficiency_level_courses = []
-    if student_profile.proficiency_level:
-        # If the student has a global proficiency level
-        proficiency_level_courses = [payment.course.id for payment in payment_proofs if payment.status == 'approved']
-    
-    # Exclude courses where student already has taken a placement test
-    if proficiency_level_courses:
-        has_pending_placement_test = PaymentProof.objects.filter(
-            user=request.user, 
-            status='approved'
-        ).filter(
-            course__quizzes__is_placement_test=True,
-            course__quizzes__is_active=True
-        ).exclude(
-            course__id__in=proficiency_level_courses
-        ).exists()
-    
-    return render(request, 'accounts/student_dashboard.html', {
+    context = {
         'student_profile': student_profile,
         'payment_proofs': payment_proofs,
-        'has_pending_placement_test': has_pending_placement_test
-    })
+        'has_pending_placement_test': has_pending_placement_test,
+        'course_periods': course_periods,
+        'ending_soon_periods': ending_soon_periods
+    }
+    
+    return render(request, 'accounts/student_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_teacher)
@@ -633,4 +640,83 @@ def teacher_update_profile(request):
     return render(request, 'accounts/teacher_update_profile.html', {
         'profile_form': profile_form,
         'password_form': password_form
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def set_course_periods(request, student_id):
+    """View for admin to set course periods for a student"""
+    student = get_object_or_404(User, id=student_id, user_type='student')
+    
+    # Get existing course periods for this student
+    existing_periods = CoursePeriod.objects.filter(student=student)
+    
+    if request.method == 'POST':
+        # Handle form submission for a specific course period
+        if 'course_period_id' in request.POST:
+            # Update an existing course period
+            course_period = get_object_or_404(CoursePeriod, 
+                id=request.POST.get('course_period_id'), 
+                student=student
+            )
+            form = CoursePeriodForm(student, request.POST, instance=course_period)
+            
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Course period for {course_period.course.title} updated successfully.")
+                return redirect('set_course_periods', student_id=student.id)
+        
+        # Handle form submission for a new course period
+        elif 'add_new_period' in request.POST:
+            form = CoursePeriodForm(student, request.POST)
+            
+            if form.is_valid():
+                course_period = form.save(commit=False)
+                course_period.student = student
+                
+                # Check if a period already exists for this course and student
+                existing = CoursePeriod.objects.filter(
+                    student=student,
+                    course=course_period.course
+                ).first()
+                
+                if existing:
+                    # Update the existing period
+                    existing.start_date = course_period.start_date
+                    existing.end_date = course_period.end_date
+                    existing.save()
+                    messages.success(request, f"Course period for {existing.course.title} updated successfully.")
+                else:
+                    # Save the new period
+                    course_period.save()
+                    messages.success(request, f"Course period for {course_period.course.title} added successfully.")
+                
+                return redirect('set_course_periods', student_id=student.id)
+        
+        # Handle deletion of a course period
+        elif 'delete_period' in request.POST:
+            period_id = request.POST.get('period_id')
+            course_period = get_object_or_404(CoursePeriod, id=period_id, student=student)
+            course_title = course_period.course.title
+            course_period.delete()
+            messages.success(request, f"Course period for {course_title} deleted successfully.")
+            return redirect('set_course_periods', student_id=student.id)
+    
+    # Create a form for adding a new course period
+    form = CoursePeriodForm(student)
+    
+    # Create forms for editing existing course periods
+    edit_forms = []
+    for period in existing_periods:
+        edit_form = CoursePeriodForm(student, instance=period)
+        edit_forms.append({
+            'period': period,
+            'form': edit_form
+        })
+    
+    return render(request, 'accounts/set_course_periods.html', {
+        'student': student,
+        'form': form,
+        'edit_forms': edit_forms,
+        'existing_periods': existing_periods
     })

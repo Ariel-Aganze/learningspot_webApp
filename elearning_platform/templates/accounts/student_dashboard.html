@@ -59,9 +59,27 @@
         </div>
     </div>
     
-    <!-- Course Status -->
-    <div class="col-md-8 mb-4">
-        <div class="card shadow h-100">
+{% if ending_soon_periods %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Course Access Ending Soon!</h4>
+            <p>The following courses are ending soon:</p>
+            <ul>
+                {% for period in ending_soon_periods %}
+                    <li><strong>{{ period.course.title }}:</strong> Your access will end on {{ period.end_date|date:"F j, Y" }} ({{ period.days_remaining }} days remaining)</li>
+                {% endfor %}
+            </ul>
+            <p class="mb-0">Please contact your instructor or administrator if you need an extension.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Course Status with periods -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
             <div class="card-header bg-white">
                 <h5 class="mb-0">My Courses</h5>
             </div>
@@ -72,6 +90,7 @@
                             <tr>
                                 <th>Course</th>
                                 <th>Status</th>
+                                <th>Access Period</th>
                                 <th>Progress</th>
                                 <th>Action</th>
                             </tr>
@@ -87,6 +106,24 @@
                                             <span class="badge bg-success">Approved</span>
                                         {% else %}
                                             <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if payment.status == 'approved' %}
+                                            {% if payment.course_period %}
+                                                {{ payment.course_period.start_date|date:"M d, Y" }} to {{ payment.course_period.end_date|date:"M d, Y" }}
+                                                {% if payment.course_period.is_expired %}
+                                                    <span class="badge bg-danger">Expired</span>
+                                                {% elif payment.course_period.is_ending_soon %}
+                                                    <span class="badge bg-warning">{{ payment.course_period.days_remaining }} days left</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">{{ payment.course_period.days_remaining }} days left</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Not set</span>
+                                            {% endif %}
+                                        {% else %}
+                                            -
                                         {% endif %}
                                     </td>
                                     <td>
@@ -117,14 +154,18 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if payment.status == 'approved' and not student_profile.proficiency_level %}
-                                            {% for quiz in payment.course.quizzes.all %}
-                                                {% if quiz.is_placement_test and quiz.is_active %}
-                                                    <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% elif payment.status == 'approved' %}
-                                            <a href="{% url 'student_course_dashboard' payment.course.slug %}" class="btn btn-sm btn-primary">Go to Course</a>
+                                        {% if payment.status == 'approved' %}
+                                            {% if not student_profile.proficiency_level %}
+                                                {% for quiz in payment.course.quizzes.all %}
+                                                    {% if quiz.is_placement_test and quiz.is_active %}
+                                                        <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% elif payment.course_period and payment.course_period.is_expired %}
+                                                <span class="text-muted">Access expired</span>
+                                            {% else %}
+                                                <a href="{% url 'student_course_dashboard' payment.course.slug %}" class="btn btn-sm btn-primary">Go to Course</a>
+                                            {% endif %}
                                         {% elif payment.status == 'rejected' %}
                                             <a href="{% url 'course_payment' payment.course.id %}" class="btn btn-sm btn-outline-primary">Resubmit Payment</a>
                                         {% else %}
@@ -144,6 +185,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
 {% if has_pending_placement_test %}

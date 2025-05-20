@@ -75,3 +75,39 @@ class PaymentProof(models.Model):
     
     def __str__(self):
         return f"Payment proof by {self.user.username} for {self.course.title}"
+    
+class CoursePeriod(models.Model):
+    """Model to store the start and end dates for a student's access to a course"""
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_periods')
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='student_periods')
+    start_date = models.DateField()
+    end_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['student', 'course']
+        
+    def __str__(self):
+        return f"{self.student.username} - {self.course.title} ({self.start_date} to {self.end_date})"
+    
+    def is_active(self):
+        """Check if the course period is currently active"""
+        today = timezone.now().date()
+        return self.start_date <= today <= self.end_date
+    
+    def is_ending_soon(self, days=3):
+        """Check if the course period is ending within the specified number of days"""
+        today = timezone.now().date()
+        days_remaining = (self.end_date - today).days
+        return 0 <= days_remaining <= days
+    
+    def is_expired(self):
+        """Check if the course period has expired"""
+        today = timezone.now().date()
+        return today > self.end_date
+    
+    def days_remaining(self):
+        """Get the number of days remaining in the course period"""
+        today = timezone.now().date()
+        return max(0, (self.end_date - today).days)

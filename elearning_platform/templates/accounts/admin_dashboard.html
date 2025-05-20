@@ -206,15 +206,24 @@
                                                 <a href="{% url 'set_student_dates' student.id %}" class="btn btn-sm btn-outline-primary">Set Dates</a>
                                             {% endif %}
                                         </td>
+                                        <!-- In the Students Tab, update the Actions column -->
                                         <td>
-                                            <form method="post" action="{% url 'toggle_user_status' student.id %}" class="d-inline">
-                                                {% csrf_token %}
-                                                {% if student.is_active %}
-                                                    <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                            <div class="btn-group">
+                                                {% if student.student_profile.assigned_teacher %}
+                                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Change Teacher</a>
                                                 {% else %}
-                                                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
                                                 {% endif %}
-                                            </form>
+                                                <a href="{% url 'set_course_periods' student.id %}" class="btn btn-sm btn-outline-info">Set Course Periods</a>
+                                                <form method="post" action="{% url 'toggle_user_status' student.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    {% if student.is_active %}
+                                                        <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                    {% endif %}
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
