@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Home - E-Learning Platform{% endblock %}
+{% block title %}Home - Learning Spot{% endblock %}
 
 {% block content %}
 <div class="row align-items-center py-5">
     <div class="col-md-6">
-        <h1 class="display-4 fw-bold">Welcome to E-Learning Platform</h1>
+        <h1 class="display-4 fw-bold">Welcome to Learning Spot</h1>
         <p class="lead">Enhance your skills with our personalized learning experience</p>
         <p>Our platform offers courses tailored to your proficiency level. Take a placement test to discover your level and start learning today.</p>
         <div class="mt-4">
@@ -18,11 +19,91 @@
         </div>
     </div>
     <div class="col-md-6 text-center">
-        <img src="static/images/bg3.png" alt="E-Learning Platform" class="img-fluid rounded shadow">
+        <img src="{% static 'images/bg3.png' %}" alt="Learning Spot" class="img-fluid rounded shadow">
     </div>
 </div>
 
-<div class="row mt-5">
+<!-- About Us Section -->
+<div id="about" class="row mt-5 mb-5">
+    <div class="col-12">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-4 fw-bold text-primary">About Us</h2>
+                    <div class="mx-auto" style="width: 60px; height: 4px; background-color: var(--primary-color);"></div>
+                </div>
+                
+                <div class="row align-items-center mb-5">
+                    <div class="col-lg-6">
+                        <p class="lead">At Learning Spot, we empower individuals through accessible, high-quality education. Our platform offers a variety of courses, from digital skills to professional development, designed to help you grow and succeed.</p>
+                        <p>With expert instructors and real-world applications, we create a community of lifelong learners. Start your journey with us today and unlock your potential.</p>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <div class="position-relative">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 200px; height: 200px;">
+                                <i class="bi bi-mortarboard text-white" style="font-size: 4rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Section -->
+                <div class="row text-center mb-5">
+                    <div class="col-md-3 mb-3">
+                        <div class="p-3">
+                            <h3 class="text-primary fw-bold">16.6%</h3>
+                            <p class="mb-0">Youth unemployment rate in Rwanda</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="p-3">
+                            <h3 class="text-primary fw-bold">4%</h3>
+                            <p class="mb-0">Teachers meeting fluency standards</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="p-3">
+                            <h3 class="text-primary fw-bold">0.2%</h3>
+                            <p class="mb-0">Rwandans speaking English fluently</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="p-3">
+                            <h3 class="text-primary fw-bold">14.5%</h3>
+                            <p class="mb-0">Female unemployment rate</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Challenge and Solution -->
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="h-100 p-4 bg-light rounded">
+                            <h4 class="text-secondary mb-3">The Challenge</h4>
+                            <p>Unemployment remains an alarming issue globally. In Rwanda, it is a particularly pressing concern, with a study conducted in Q1 2024 showing that "approximately one person was unemployed for every eight in the labor force."</p>
+                            <p class="mb-0">Gender disparities persist, with females experiencing a higher unemployment rate at 14.5% compared to males at 11.5%. Youth face a notably higher rate of 16.6% compared to adults at 10.3%, and urban areas bear a heavier burden with an unemployment rate of 14% compared to 12.3% in rural areas.</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="h-100 p-4 bg-primary text-white rounded">
+                            <h4 class="mb-3">Our Solution</h4>
+                            <p>This unemployment issue is linked to skill gaps, especially in digital skills and English fluency. This is where Learning Spot steps in, offering essential skills to help everyone compete successfully in the labor market.</p>
+                            <p class="mb-0">Beyond tackling unemployment, Learning Spot is committed to supporting you all the way. We know the skills needed to succeed at work, and our training programs are designed to help you excel in your career.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Info -->
+                <div class="text-center mt-4">
+                    <p class="lead">For businesspeople and travelers, Learning Spot has you covered as well. You can learn new languages and master digital tools, connecting with loved ones and partners worldwide—all from the comfort of where you are.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div id="how-it-works" class="row mt-5">
     <div class="col-12 text-center">
         <h2 class="mb-4">How It Works</h2>
     </div>
@@ -62,5 +143,346 @@
             </div>
         </div>
     </div>
+</div>  
+
+<!-- Testimonials Section -->
+<div id="testimonials" class="row mt-5 mb-5">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h2 class="display-4 fw-bold">What Our Students Say</h2>
+            <p class="lead text-muted">Hear from learners who have transformed their careers with Learning Spot</p>
+            <div class="mx-auto" style="width: 60px; height: 4px; background-color: var(--primary-color);"></div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"Learning Spot transformed my career! The digital skills course helped me land a job in tech. The instructors are amazing and the platform is so easy to use."</p>
+                            <footer class="blockquote-footer">
+                                <strong>Sarah Uwimana</strong>
+                                <cite title="Job Title">Software Developer</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"The English course at Learning Spot gave me confidence to communicate in international business. Now I can connect with clients worldwide!"</p>
+                            <footer class="blockquote-footer">
+                                <strong>Jean Claude Nzeyimana</strong>
+                                <cite title="Job Title">Business Manager</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"As a young entrepreneur, Learning Spot's courses helped me develop both technical and language skills. The flexible learning schedule fits perfectly with my business."</p>
+                            <footer class="blockquote-footer">
+                                <strong>Grace Mukamana</strong>
+                                <cite title="Job Title">Entrepreneur</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"The personalized approach and expert teachers made all the difference. I went from basic to advanced level in just 6 months!"</p>
+                            <footer class="blockquote-footer">
+                                <strong>Patrick Habimana</strong>
+                                <cite title="Job Title">Marketing Specialist</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"Learning Spot helped me bridge the skills gap I faced as a fresh graduate. The practical approach and real-world projects prepared me for the job market."</p>
+                            <footer class="blockquote-footer">
+                                <strong>Aline Uwimana</strong>
+                                <cite title="Job Title">Data Analyst</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="bi bi-person text-white" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mb-3">
+                            <div class="text-warning">
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+                        </div>
+                        <blockquote class="blockquote text-center">
+                            <p class="mb-3">"The platform's flexibility allowed me to learn while working full-time. Now I'm leading digital transformation projects at my company!"</p>
+                            <footer class="blockquote-footer">
+                                <strong>Emmanuel Ndayisaba</strong>
+                                <cite title="Job Title">IT Project Manager</cite>
+                            </footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Call to Action within Testimonials -->
+        <div class="text-center mt-5">
+            <div class="bg-light p-5 rounded">
+                <h3 class="mb-3">Join Thousands of Successful Learners</h3>
+                <p class="lead mb-4">Start your journey today and become our next success story</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'course_list' %}" class="btn btn-primary btn-lg">Explore Courses</a>
+                {% else %}
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg me-3">Get Started</a>
+                    <a href="{% url 'course_list' %}" class="btn btn-outline-primary btn-lg">View Courses</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Contact Us Section -->
+<div id="contact" class="row mt-5 mb-5">
+    <div class="col-12">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-4 fw-bold text-primary">Contact Us</h2>
+                    <p class="lead text-muted">Get in touch with us - we'd love to hear from you</p>
+                    <div class="mx-auto" style="width: 60px; height: 4px; background-color: var(--primary-color);"></div>
+                </div>
+                
+                <div class="row">
+                    <!-- Contact Information -->
+                    <div class="col-lg-6 mb-4">
+                        <h4 class="mb-4">Get In Touch</h4>
+                        <p class="mb-4">Have questions about our courses or need help getting started? We're here to help you on your learning journey.</p>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-geo-alt text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Address</h6>
+                                        <p class="mb-0 text-muted">Kigali, Rwanda</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-telephone text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Phone</h6>
+                                        <p class="mb-0 text-muted">+250 784 602 752</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-envelope text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Email</h6>
+                                        <p class="mb-0 text-muted">info@learningspot.rw</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                        <i class="bi bi-clock text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Business Hours</h6>
+                                        <p class="mb-0 text-muted">Mon - Fri: 8AM - 6PM</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Social Media Links -->
+                        <div class="mt-4">
+                            <h6 class="mb-3">Follow Us</h6>
+                            <div class="d-flex gap-2">
+                                    <a href="https://www.facebook.com/profile.php?id=61572888276321" class="social-link">
+                                        <i class="bi bi-facebook"></i>
+                                    </a>
+                                    <a href="https://x.com/learningspotlt" class="social-link">
+                                        <i class="bi bi-twitter"></i>
+                                    </a>
+                                    <a href="https://www.instagram.com/learningspotltd/" class="social-link">
+                                        <i class="bi bi-instagram"></i>
+                                    </a>
+                                    <a href="https://www.linkedin.com/company/learningspot/" class="social-link">
+                                        <i class="bi bi-linkedin"></i>
+                                    </a>
+                                    <a href="https://www.youtube.com/@LearningSpot-ltd" class="social-link">
+                                        <i class="bi bi-youtube"></i>
+                                    </a>
+                                </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Form -->
+                    <div class="col-lg-6">
+                        <div class="bg-light p-4 rounded">
+                            <h4 class="mb-4">Send Us a Message</h4>
+                            <form method="post" action="#" id="contactForm">
+                                {% csrf_token %}
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="firstName" class="form-label">First Name *</label>
+                                        <input type="text" class="form-control" id="firstName" name="first_name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="lastName" class="form-label">Last Name *</label>
+                                        <input type="text" class="form-control" id="lastName" name="last_name" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="subject" class="form-label">Subject *</label>
+                                    <select class="form-select" id="subject" name="subject" required>
+                                        <option value="">Select a subject</option>
+                                        <option value="course_inquiry">Course Inquiry</option>
+                                        <option value="enrollment">Enrollment Support</option>
+                                        <option value="technical_support">Technical Support</option>
+                                        <option value="partnership">Partnership Opportunities</option>
+                                        <option value="feedback">Feedback</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Message *</label>
+                                    <textarea class="form-control" id="message" name="message" rows="5" placeholder="Tell us how we can help you..." required></textarea>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="consent" name="consent" required>
+                                    <label class="form-check-label" for="consent">
+                                        I agree to be contacted by Learning Spot regarding my inquiry *
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-send me-2"></i>Send Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
