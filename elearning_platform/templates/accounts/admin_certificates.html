@@ -1,0 +1,55 @@
+<!-- templates/accounts/admin_certificates.html -->
+{% extends 'base.html' %}
+
+{% block title %}Certificate Management - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Certificate Management</h1>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Manage Course Certificates</h5>
+        </div>
+        <div class="card-body">
+            {% if courses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Enrolled Students</th>
+                            <th>Certificates Issued</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.student_count }}</td>
+                            <td>{{ course.certificate_count }}</td>
+                            <td>
+                                <a href="{% url 'course_certificates' course.id %}" class="btn btn-sm btn-primary">
+                                    Manage Certificates
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No courses available. Add courses first to manage certificates.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

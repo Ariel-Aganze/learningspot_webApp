@@ -40,6 +40,14 @@ urlpatterns = [
 
     path('students/create/', views.create_student, name='create_student'),
     
+    # Admin Certificates
 
+    path('admin/certificates/', views.admin_certificates, name='admin_certificates'),
+    path('admin/certificates/course/<int:course_id>/', views.course_certificates, name='course_certificates'),
+    path('admin/certificates/issue/<int:course_id>/<int:student_id>/', views.issue_certificate, name='issue_certificate'),
+    path('admin/certificates/revoke/<int:certificate_id>/', views.revoke_certificate, name='revoke_certificate'),
+
+    path('certificate/<int:course_id>/', views.view_certificate, name='view_certificate'),
+    path('certificate/download/<int:certificate_id>/', views.download_certificate, name='download_certificate'),
 
 ]

@@ -227,3 +227,31 @@ class CourseApproval(models.Model):
     class Meta:
         verbose_name = "Course Approval"
         verbose_name_plural = "Course Approvals"
+
+
+# accounts/models.py
+class Certificate(models.Model):
+    """Model for tracking course completion certificates"""
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='certificates')
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='certificates')
+    certificate_id = models.CharField(max_length=50, unique=True, blank=True)
+    issue_date = models.DateField(default=timezone.now)
+    
+    def __str__(self):
+        return f"Certificate {self.certificate_id} - {self.student.get_full_name()} - {self.course.title}"
+    
+    def save(self, *args, **kwargs):
+        # Generate unique certificate ID if not provided
+        if not self.certificate_id:
+            import random
+            import string
+            chars = string.digits
+            random_str = ''.join(random.choice(chars) for _ in range(8))
+            self.certificate_id = f"LS-{self.course.id}-{random_str}"
+        
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        verbose_name = "Certificate"
+        verbose_name_plural = "Certificates"
+        unique_together = ['student', 'course']

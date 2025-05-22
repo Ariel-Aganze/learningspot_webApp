@@ -1,0 +1,115 @@
+<!-- templates/accounts/certificate_template.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Course Completion Certificate</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 1cm;
+            background-color: #ffffff;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            text-align: center;
+            color: #333333;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .certificate {
+            border: 10px double #2c5e1a;
+            padding: 20px;
+            margin: 0;
+        }
+        .title {
+            font-size: 36pt;
+            color: #2c5e1a;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-size: 24pt;
+            color: #2c5e1a;
+            margin-bottom: 40px;
+        }
+        .content {
+            margin: 40px 0;
+        }
+        .content p {
+            font-size: 14pt;
+            margin: 10px 0;
+        }
+        .student-name {
+            font-size: 28pt;
+            color: #2c5e1a;
+            margin: 20px 0;
+        }
+        .course-name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .signatures {
+            margin-top: 80px;
+            width: 100%;
+        }
+        .signature {
+            width: 40%;
+            display: inline-block;
+            margin: 0 20px;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+        .signatory-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate">
+        <div class="title">COMPLETION CERTIFICATE</div>
+        <div class="subtitle">LEARNING SPOT</div>
+        
+        <div class="content">
+            <p>This certificate is granted to</p>
+            <div class="student-name">{{ certificate.student.get_full_name }}</div>
+            
+            <p>for successfully completing the</p>
+            <div class="course-name">{{ certificate.course.title }}</div>
+        </div>
+        
+        <table class="signatures" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+                <td width="50%" align="center">
+                    <div class="signature">
+                        <div class="signature-line">&nbsp;</div>
+                        <div class="signatory-name">{{ teacher_name }}</div>
+                        <div>Field Expert</div>
+                    </div>
+                </td>
+                <td width="50%" align="center">
+                    <div class="signature">
+                        <div class="signature-line">&nbsp;</div>
+                        <div class="signatory-name">{{ ceo_name }}</div>
+                        <div>CEO, Learning Spot</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="footer">
+            <p>Certificate ID: {{ certificate.certificate_id }}</p>
+            <p>Date of issue: {{ certificate.issue_date|date:"d.m.Y" }}</p>
+        </div>
+    </div>
+</body>
+</html>

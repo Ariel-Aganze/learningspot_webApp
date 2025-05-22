@@ -186,6 +186,34 @@
 </div>
 </div>
 
+<!-- In student dashboard template -->
+<div class="card shadow mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Your Certificates</h5>
+    </div>
+    <div class="card-body">
+        {% if user.certificates.exists %}
+        <div class="list-group">
+            {% for certificate in user.certificates.all %}
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">{{ certificate.course.title }}</h6>
+                    <small class="text-muted">Issued on {{ certificate.issue_date|date:"F d, Y" }}</small>
+                </div>
+                <a href="{% url 'download_certificate' certificate.id %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            You haven't earned any certificates yet. Complete a course to receive a certificate.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 {% if has_pending_placement_test %}
 <div class="row" id="placement-tests">
     <div class="col-md-12 mb-4">

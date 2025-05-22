@@ -50,6 +50,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="materials-tab" data-bs-toggle="pill" data-bs-target="#materials" type="button" role="tab">Learning Materials</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="certificates-tab" data-bs-toggle="pill" data-bs-target="#certificates" type="button" role="tab">Certificates</button>
+            </li>
         </ul>
 
         <div class="tab-content" id="adminTabContent">
@@ -143,6 +146,49 @@
                     </div>
                 </div>
             </div>
+
+            <div class="tab-pane fade" id="certificates" role="tabpanel">
+    <div class="card shadow">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Certificate Management</h5>
+            <a href="{% url 'admin_certificates' %}" class="btn btn-sm btn-primary">Manage Certificates</a>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body text-center">
+                            <div class="display-4 text-primary mb-2">{{ certificate_stats.total|default:"0" }}</div>
+                            <div class="text-muted">Total Certificates Issued</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body text-center">
+                            <div class="display-4 text-success mb-2">{{ certificate_stats.recent|default:"0" }}</div>
+                            <div class="text-muted">Certificates Issued in Last 30 Days</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body text-center p-4">
+                            <a href="{% url 'admin_certificates' %}" class="btn btn-lg btn-outline-primary">
+                                <i class="fas fa-certificate me-2"></i> Manage Certificates
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <h6 class="alert-heading">Certificate Management</h6>
+                <p class="mb-0">Issue course completion certificates to students, track issued certificates, and manage certificate revocation.</p>
+            </div>
+        </div>
+    </div>
+</div>
             
 <!-- Students Tab -->
 <div class="tab-pane fade" id="students" role="tabpanel">

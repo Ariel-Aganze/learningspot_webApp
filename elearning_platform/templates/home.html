@@ -1,66 +1,408 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load i18n %}
 
-{% block title %}Home - E-Learning Platform{% endblock %}
+{% block title %}Learning Spot - Language Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(to right, #0D3B66, #1b5a9c);
+        color: white;
+        padding: 80px 0;
+    }
+    
+    /* Features Section */
+    .features-section {
+        padding: 80px 0;
+        background-color: #f8f9fa;
+    }
+    
+    .feature-box {
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        height: 100%;
+        background-color: white;
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-box:hover {
+        transform: translateY(-10px);
+    }
+    
+    .feature-icon {
+        font-size: 40px;
+        margin-bottom: 20px;
+        color: #F9C24A;
+    }
+    
+    /* About Section */
+    .about-section {
+        padding: 80px 0;
+    }
+    
+    /* Courses Section */
+    .courses-section {
+        padding: 80px 0;
+        background-color: #f8f9fa;
+    }
+    
+    .course-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+    
+    .course-card:hover {
+        transform: translateY(-10px);
+    }
+    
+    .course-img {
+        height: 200px;
+        object-fit: cover;
+    }
+    
+    /* Testimonials Section */
+    .testimonials-section {
+        padding: 80px 0;
+        background-color: #0D3B66;
+        color: white;
+    }
+    
+    .testimonial-card {
+        background-color: white;
+        color: #333;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .testimonial-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 20px;
+    }
+    
+    /* Contact Section */
+    .contact-section {
+        padding: 80px 0;
+    }
+    
+    .contact-info {
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+    }
+    
+    .section-title {
+        position: relative;
+        margin-bottom: 40px;
+        padding-bottom: 15px;
+    }
+    
+    .section-title:after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 50px;
+        height: 3px;
+        background-color: #F9C24A;
+    }
+    
+    .section-title.text-center:after {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .btn-primary {
+        background-color: #0D3B66;
+        border-color: #0D3B66;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0a2e4f;
+        border-color: #0a2e4f;
+    }
+    
+    .btn-warning {
+        background-color: #F9C24A;
+        border-color: #F9C24A;
+    }
+    
+    .btn-warning:hover {
+        background-color: #e5b042;
+        border-color: #e5b042;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row align-items-center py-5">
-    <div class="col-md-6">
-        <h1 class="display-4 fw-bold">Welcome to E-Learning Platform</h1>
-        <p class="lead">Enhance your skills with our personalized learning experience</p>
-        <p>Our platform offers courses tailored to your proficiency level. Take a placement test to discover your level and start learning today.</p>
-        <div class="mt-4">
-            {% if user.is_authenticated %}
-                <a href="{% url 'course_list' %}" class="btn btn-primary btn-lg">Explore Courses</a>
-            {% else %}
-                <a href="{% url 'signup' %}" class="btn btn-primary btn-lg me-2">Get Started</a>
-                <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg">Login</a>
-            {% endif %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Improve Your Language Skills with Learning Spot</h1>
+                <p class="lead mb-5">Learn languages effectively with our comprehensive courses, personalized coaching, and interactive learning experience.</p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'signup' %}" class="btn btn-warning btn-lg">Get Started</a>
+                    <a href="#courses" class="btn btn-outline-light btn-lg">Explore Courses</a>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <img src="{% static 'images/hero-image.png' %}" alt="Learning Spot" class="img-fluid" onerror="this.src='https://via.placeholder.com/600x400?text=Learning+Spot'">
+            </div>
         </div>
     </div>
-    <div class="col-md-6 text-center">
-        <img src="static/images/bg3.png" alt="E-Learning Platform" class="img-fluid rounded shadow">
-    </div>
-</div>
+</section>
 
-<div class="row mt-5">
-    <div class="col-12 text-center">
-        <h2 class="mb-4">How It Works</h2>
+<!-- Features Section -->
+<section class="features-section" id="features">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Why Choose Learning Spot?</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h3>Online Learning</h3>
+                    <p>Access our courses anytime, anywhere. Learn at your own pace with our flexible online platform.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h3>Expert Teachers</h3>
+                    <p>Learn from experienced language instructors who provide personalized guidance.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h3>Certification</h3>
+                    <p>Earn recognized certificates upon successful completion of our courses.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Community Support</h3>
+                    <p>Join our community of learners for practice, motivation, and cultural exchange.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h3>Comprehensive Resources</h3>
+                    <p>Access a wide range of learning materials including audio, video, and interactive exercises.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-box text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Progress Tracking</h3>
+                    <p>Monitor your learning journey with detailed progress reports and analytics.</p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 
-<div class="row mb-5">
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <span class="display-3 text-primary">1</span>
+<!-- About Section -->
+<section class="about-section" id="about">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <img src="{% static 'images/bg1.png' %}" alt="About Learning Spot" class="img-fluid rounded" onerror="this.src='https://via.placeholder.com/600x400?text=About+Us'">
+            </div>
+            <div class="col-lg-6">
+                <h2 class="section-title">About Learning Spot</h2>
+                <p class="lead mb-4">We are dedicated to providing high-quality language education that is accessible, effective, and engaging.</p>
+                <p>Learning Spot was founded with a mission to break down language barriers and connect people across cultures. Our team of experienced educators and language experts are passionate about helping students achieve fluency through innovative teaching methods and personalized learning experiences.</p>
+                <p>We believe that language learning should be enjoyable and relevant to real-life situations. That's why our courses focus on practical communication skills while providing a solid foundation in grammar and vocabulary.</p>
+                <div class="mt-4">
+                    <a href="#contact" class="btn btn-primary">Contact Us</a>
                 </div>
-                <h5 class="card-title">Sign Up & Choose Courses</h5>
-                <p class="card-text">Create an account and select the courses you're interested in taking.</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <span class="display-3 text-primary">2</span>
+</section>
+
+<!-- Courses Section -->
+<section class="courses-section" id="courses">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Our Courses</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card course-card">
+                    <img src="{% static 'images/course-language.jpg' %}" class="card-img-top course-img" alt="Language Skills" onerror="this.src='https://via.placeholder.com/400x200?text=Language+Skills'">
+                    <div class="card-body">
+                        <h5 class="card-title">Language Skills</h5>
+                        <p class="card-text">Comprehensive language courses from beginner to advanced levels. Focus on speaking, listening, reading, and writing.</p>
+                        <a href="{% url 'course_list' %}" class="btn btn-primary">View Courses</a>
+                    </div>
                 </div>
-                <h5 class="card-title">Take Placement Test</h5>
-                <p class="card-text">Complete a placement test to determine your proficiency level.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="card course-card">
+                    <img src="{% static 'images/course-professional.jpg' %}" class="card-img-top course-img" alt="Professional Courses" onerror="this.src='https://via.placeholder.com/400x200?text=Professional+Courses'">
+                    <div class="card-body">
+                        <h5 class="card-title">Professional Courses</h5>
+                        <p class="card-text">Specialized language training for business, medicine, law, and other professional fields.</p>
+                        <a href="{% url 'course_list' %}" class="btn btn-primary">View Courses</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card course-card">
+                    <img src="{% static 'images/course-digital.jpg' %}" class="card-img-top course-img" alt="Digital Skills" onerror="this.src='https://via.placeholder.com/400x200?text=Digital+Skills'">
+                    <div class="card-body">
+                        <h5 class="card-title">Digital Skills</h5>
+                        <p class="card-text">Courses combining language learning with digital literacy and computer skills for modern workplaces.</p>
+                        <a href="{% url 'course_list' %}" class="btn btn-primary">View Courses</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <span class="display-3 text-primary">3</span>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials-section">
+    <div class="container">
+        <h2 class="section-title text-center text-white mb-5">What Our Students Say</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="testimonial-card text-center">
+                    <img src="{% static 'images/bg1.png' %}" alt="Student" class="testimonial-img mx-auto" onerror="this.src='https://via.placeholder.com/80x80?text=S'">
+                    <h5>Sarah Johnson</h5>
+                    <p class="text-muted mb-3">English Course</p>
+                    <p>"The personalized attention from my teacher helped me improve my speaking skills dramatically. I'm now confident in my business conversations!"</p>
+                    <div class="text-warning">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
                 </div>
-                <h5 class="card-title">Start Learning</h5>
-                <p class="card-text">Get matched with a teacher and begin your personalized learning journey.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card text-center">
+                    <img src="{% static 'images/bg2.png' %}" alt="Student" class="testimonial-img mx-auto" onerror="this.src='https://via.placeholder.com/80x80?text=M'">
+                    <h5>Michael Rodriguez</h5>
+                    <p class="text-muted mb-3">Professional Course</p>
+                    <p>"The medical terminology course was excellent. The materials were well-structured and the instructor was knowledgeable and supportive."</p>
+                    <div class="text-warning">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial-card text-center">
+                    <img src="{% static 'images/bg3.png' %}" alt="Student" class="testimonial-img mx-auto" onerror="this.src='https://via.placeholder.com/80x80?text=K'">
+                    <h5>Kimberly Chen</h5>
+                    <p class="text-muted mb-3">Digital Skills</p>
+                    <p>"Learning both language and digital skills simultaneously was exactly what I needed for my career advancement. Highly recommend!"</p>
+                    <div class="text-warning">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section" id="contact">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Get in Touch</h2>
+        <div class="row">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <form>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="name" placeholder="Enter your name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Your Email</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="subject" placeholder="Enter subject">
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="5" placeholder="Enter your message"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+            <div class="col-lg-6">
+                <div class="contact-info h-100 d-flex flex-column justify-content-center">
+                    <h4 class="mb-4">Contact Information</h4>
+                    <div class="mb-3">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                        <span>Kampala, Uganda</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-phone me-2 text-primary"></i>
+                        <span>+256 750 123 456</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-envelope me-2 text-primary"></i>
+                        <span>info@learningspot.com</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-clock me-2 text-primary"></i>
+                        <span>Monday - Friday: 8:00 AM - 6:00 PM</span>
+                    </div>
+                    <div class="social-links mt-4">
+                        <a href="#" class="me-3 text-dark fs-5"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="me-3 text-dark fs-5"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="me-3 text-dark fs-5"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="me-3 text-dark fs-5"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="bg-primary text-white py-5">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Start Your Learning Journey?</h2>
+        <p class="lead mb-4">Join thousands of satisfied students and take your language skills to the next level.</p>
+        <a href="{% url 'signup' %}" class="btn btn-warning btn-lg px-5">Get Started Today</a>
+    </div>
+</section>
 {% endblock %}

@@ -175,3 +175,4 @@ class ContentView(models.Model):
     
     def __str__(self):
         return f"{self.user.username} viewed {self.content_type} {self.content_id}"
+    

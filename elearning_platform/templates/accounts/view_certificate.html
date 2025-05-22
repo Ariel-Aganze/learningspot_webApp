@@ -1,0 +1,51 @@
+<!-- templates/accounts/view_certificate.html -->
+{% extends 'base.html' %}
+
+{% block title %}Course Completion Certificate - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <h1 class="h3 mb-0">Course Completion Certificate</h1>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <p class="lead">Congratulations on completing the course!</p>
+                        <h2 class="h4 text-primary">{{ course.title }}</h2>
+                    </div>
+                    
+                    <div class="certificate-preview mb-4">
+                        <div class="border p-4 mb-3">
+                            <div class="h3 text-success mb-3">LEARNING SPOT</div>
+                            <p>This certificate is awarded to</p>
+                            <p class="h3 my-3">{{ request.user.get_full_name }}</p>
+                            <p>for successfully completing the course</p>
+                            <p class="h4 my-3">{{ course.title }}</p>
+                            <p class="small mt-4">Certificate ID: {{ certificate.certificate_id }}</p>
+                            <p class="small">Issue Date: {{ certificate.issue_date|date:"F d, Y" }}</p>
+                        </div>
+                        <div class="alert alert-info">
+                            This is a preview. Download the certificate to view the full version.
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <a href="{% url 'download_certificate' certificate.id %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-download me-2"></i> Download Certificate
+                        </a>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'course_detail' course.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Course
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

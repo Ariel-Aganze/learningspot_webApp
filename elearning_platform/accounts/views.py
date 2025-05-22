@@ -37,8 +37,25 @@ from django.template.loader import render_to_string
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.urls import reverse
-from .models import User, StudentProfile, Organization, CourseApproval
+from .models import User, StudentProfile, Organization, CourseApproval, Certificate
 from datetime import datetime  
+from django.db.models import Count, Exists, OuterRef
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Count, Exists, OuterRef
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from io import BytesIO
+
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from io import BytesIO
+import os
+from django.conf import settings
 
 
 
@@ -386,6 +403,12 @@ def admin_dashboard(request):
     organizations_page = get_paginated_page(paginator_organizations, page_organizations)
     assignments_page = get_paginated_page(paginator_assignments, page_assignments)
     materials_page = get_paginated_page(paginator_materials, page_materials)
+
+
+    certificate_stats = {
+        'total': Certificate.objects.count(),
+        'recent': Certificate.objects.filter(issue_date__gte=timezone.now().date() - timezone.timedelta(days=30)).count()
+    }
     
     # Context with paginated data
     context = {
@@ -397,6 +420,7 @@ def admin_dashboard(request):
         'assignments': assignments_page,
         'materials': materials_page,
         'now': timezone.now(),
+        'certificate_stats': certificate_stats,
     }
     
     return render(request, 'accounts/admin_dashboard.html', context)
@@ -933,3 +957,276 @@ def create_student(request):
     return render(request, 'accounts/create_student.html', {
         'form': form,
     })
+
+# courses/views.py (or accounts/views.py depending on your structure)
+
+@login_required
+@user_passes_test(is_admin)
+def admin_certificates(request):
+    """Admin view to manage and issue certificates"""
+    # Get all courses with properly counted students and certificates
+    courses = Course.objects.all()
+    
+    # Process each course to get accurate counts
+    course_data = []
+    for course in courses:
+        # Count students enrolled in this course (adjust this query based on your enrollment model)
+        student_count = User.objects.filter(
+            course_periods__course=course,
+            user_type='student'
+        ).distinct().count()
+        
+        # Count certificates issued for this course
+        certificate_count = Certificate.objects.filter(course=course).count()
+        
+        # Add counts to course object
+        course.student_count = student_count
+        course.certificate_count = certificate_count
+        course_data.append(course)
+    
+    context = {
+        'courses': course_data,
+    }
+    
+    return render(request, 'accounts/admin_certificates.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def course_certificates(request, course_id):
+    """Admin view to manage certificates for a specific course"""
+    course = get_object_or_404(Course, id=course_id)
+    
+    # Get ALL students in the system
+    students = User.objects.filter(
+        user_type='student'
+    ).annotate(
+        has_certificate=Exists(
+            Certificate.objects.filter(
+                student=OuterRef('pk'),
+                course=course
+            )
+        )
+    ).order_by('last_name', 'first_name')
+    
+    if request.method == 'POST':
+        if 'issue_all' in request.POST:
+            # Issue certificates to all students who don't have one
+            students_without_certificates = students.filter(has_certificate=False)
+            certificates_issued = 0
+            
+            for student in students_without_certificates:
+                # Check if student has completed the course
+                # Implement your completion check logic here
+                course_completed = True  # Replace with actual check
+                
+                if course_completed:
+                    Certificate.objects.create(
+                        student=student,
+                        course=course,
+                        issue_date=timezone.now().date()
+                    )
+                    certificates_issued += 1
+            
+            messages.success(request, f"Successfully issued {certificates_issued} certificates.")
+            return redirect('course_certificates', course_id=course_id)
+            
+        elif 'issue_selected' in request.POST:
+            # Issue certificates to selected students
+            selected_students = request.POST.getlist('selected_students')
+            certificates_issued = 0
+            
+            for student_id in selected_students:
+                student = get_object_or_404(User, id=student_id)
+                
+                # Check if student has completed the course
+                # Implement your completion check logic here
+                course_completed = True  # Replace with actual check
+                
+                if course_completed and not Certificate.objects.filter(student=student, course=course).exists():
+                    Certificate.objects.create(
+                        student=student,
+                        course=course,
+                        issue_date=timezone.now().date()
+                    )
+                    certificates_issued += 1
+            
+            messages.success(request, f"Successfully issued {certificates_issued} certificates.")
+            return redirect('course_certificates', course_id=course_id)
+            
+        elif 'revoke_selected' in request.POST:
+            # Revoke certificates from selected students
+            selected_students = request.POST.getlist('selected_students')
+            certificates_revoked = 0
+            
+            for student_id in selected_students:
+                certs_deleted, _ = Certificate.objects.filter(
+                    student_id=student_id,
+                    course=course
+                ).delete()
+                certificates_revoked += certs_deleted
+            
+            messages.success(request, f"Successfully revoked {certificates_revoked} certificates.")
+            return redirect('course_certificates', course_id=course_id)
+    
+    context = {
+        'course': course,
+        'students': students,
+    }
+    
+    return render(request, 'accounts/course_certificates.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def issue_certificate(request, course_id, student_id):
+    """Issue a certificate to a specific student"""
+    course = get_object_or_404(Course, id=course_id)
+    student = get_object_or_404(User, id=student_id, user_type='student')
+    
+    # Check if student already has a certificate for this course
+    if Certificate.objects.filter(student=student, course=course).exists():
+        messages.warning(request, f"{student.get_full_name()} already has a certificate for this course.")
+        return redirect('course_certificates', course_id=course_id)
+    
+    # Check if student has completed the course
+    # Implement your completion check logic here
+    course_completed = True  # Replace with actual check
+    
+    if not course_completed:
+        messages.error(request, f"{student.get_full_name()} has not completed this course yet.")
+        return redirect('course_certificates', course_id=course_id)
+    
+    # Create certificate
+    certificate = Certificate.objects.create(
+        student=student,
+        course=course,
+        issue_date=timezone.now().date()
+    )
+    
+    messages.success(request, f"Certificate issued to {student.get_full_name()} successfully.")
+    return redirect('course_certificates', course_id=course_id)
+
+@login_required
+@user_passes_test(is_admin)
+def revoke_certificate(request, certificate_id):
+    """Revoke a specific certificate"""
+    certificate = get_object_or_404(Certificate, id=certificate_id)
+    course_id = certificate.course.id
+    student_name = certificate.student.get_full_name()
+    
+    certificate.delete()
+    
+    messages.success(request, f"Certificate for {student_name} has been revoked.")
+    return redirect('course_certificates', course_id=course_id)
+
+
+
+def render_to_pdf(template_src, context_dict={}):
+    """Function to render HTML template to PDF"""
+    template = get_template(template_src)
+    html = template.render(context_dict)
+    result = BytesIO()
+    
+    # Create PDF
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    if not pdf.err:
+        return HttpResponse(result.getvalue(), content_type='application/pdf')
+    return HttpResponse('Error generating PDF', status=400)
+
+@login_required
+def view_certificate(request, course_id):
+    """View to display certificate and offer download option"""
+    course = get_object_or_404(Course, id=course_id)
+    
+    # Check if student has completed the course
+    # Implement your course completion logic here
+    course_completed = True  # Replace with actual completion check
+    
+    if not course_completed:
+        messages.error(request, "You need to complete this course before you can get a certificate.")
+        return redirect('course_detail', course_id=course_id)
+    
+    # Get or create a certificate
+    certificate, created = Certificate.objects.get_or_create(
+        student=request.user,
+        course=course,
+        defaults={'issue_date': timezone.now().date()}
+    )
+    
+    # Get the teacher for this course
+    teacher_name = "Not Assigned"
+    if hasattr(course, 'teacher'):
+        teacher_name = course.teacher.get_full_name()
+    
+    context = {
+        'certificate': certificate,
+        'teacher_name': teacher_name,
+        'course': course,
+    }
+    
+    return render(request, 'accounts/view_certificate.html', context)
+
+@login_required
+def download_certificate(request, certificate_id):
+    """View to generate and download PDF certificate"""
+    # First check if the certificate exists
+    try:
+        # Different behavior for admin vs student
+        if hasattr(request.user, 'user_type') and request.user.user_type == 'admin':
+            certificate = Certificate.objects.get(id=certificate_id)
+        else:
+            certificate = Certificate.objects.get(id=certificate_id, student=request.user)
+    except Certificate.DoesNotExist:
+        messages.error(request, "Certificate not found. It may have been deleted or you don't have permission to access it.")
+        return redirect('dashboard')  # Redirect to an appropriate page
+    
+    # Get the teacher for this course
+    teacher_name = "Not Assigned"
+    if hasattr(certificate.course, 'teacher'):
+        teacher_name = certificate.course.teacher.get_full_name()
+    else:
+        # Default teacher name if not assigned
+        teacher_name = "Course Instructor"
+    
+    # Get CEO name - replace with actual data if available
+    ceo_name = "John Smith"
+    
+    from io import BytesIO
+    from django.http import HttpResponse
+    from django.template.loader import get_template
+    import xhtml2pdf.pisa as pisa
+    
+    template = get_template('accounts/certificate_template.html')
+    context = {
+        'certificate': certificate,
+        'teacher_name': teacher_name,
+        'ceo_name': ceo_name,
+        'company_name': 'Learning Spot',
+        'now': datetime.now(),
+    }
+    
+    # Render the template
+    html = template.render(context)
+    
+    # Create a PDF
+    response = HttpResponse(content_type='application/pdf')
+    
+    # Generate PDF
+    pdf_status = pisa.CreatePDF(
+        BytesIO(html.encode("UTF-8")), 
+        dest=response
+    )
+    
+    # Check if PDF generation was successful
+    if pdf_status.err:
+        return HttpResponse('Error generating PDF', status=500)
+    
+    # Set filename
+    filename = f"Certificate_{certificate.certificate_id}.pdf"
+    
+    # Set content disposition
+    if 'preview' in request.GET:
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+    else:
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response

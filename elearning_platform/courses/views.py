@@ -18,6 +18,15 @@ from .models import ContentView
 from django.db.models import Max
 from datetime import timedelta
 
+import uuid
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+
+
 
 def is_admin(user):
     """Check if user is admin or superuser"""
@@ -896,4 +905,8 @@ def mark_content_viewed(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+
 
