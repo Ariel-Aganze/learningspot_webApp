@@ -1,0 +1,592 @@
+{% extends 'base.html' %}
+
+{% block title %}Media Management - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .file-icon {
+        font-size: 2rem;
+        margin-right: 10px;
+    }
+    .file-size {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .storage-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    .file-type-badge {
+        font-size: 0.8rem;
+    }
+    .file-row:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    .btn-danger-soft {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: rgba(220, 53, 69, 0.3);
+        color: #dc3545;
+    }
+    .btn-danger-soft:hover {
+        background-color: rgba(220, 53, 69, 0.2);
+        border-color: rgba(220, 53, 69, 0.5);
+        color: #dc3545;
+    }
+    .progress-storage {
+        height: 8px;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-hdd-stack me-2"></i>Media Management</h1>
+        <p class="lead">Manage your server's media files and storage space</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Storage Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card storage-stats text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-hdd display-4 mb-3"></i>
+                <h3>{{ total_size_gb }} GB</h3>
+                <p class="mb-0">Total Storage Used</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-files display-4 mb-3"></i>
+                <h3>{{ total_files }}</h3>
+                <p class="mb-0">Total Files</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-recycle display-4 mb-3"></i>
+                <h3 id="freedSpace">0 MB</h3>
+                <p class="mb-0">Space Freed Today</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Type Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">File Types</h5>
+                <button class="btn btn-warning btn-sm" onclick="cleanupOrphanedFiles()">
+                    <i class="bi bi-trash3 me-1"></i>Cleanup Orphaned Files
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for file_type, count in type_counts.items %}
+                    <div class="col-md-2 col-sm-4 col-6 mb-3 text-center">
+                        <div class="p-3 border rounded">
+                            <i class="bi bi-{% if file_type == 'image' %}image{% elif file_type == 'video' %}camera-video{% elif file_type == 'audio' %}music-note{% elif file_type == 'application' %}file-earmark-text{% else %}file{% endif %} text-primary" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">{{ count }}</h6>
+                            <small class="text-muted">{{ file_type|title }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Actions -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="d-flex gap-2">
+            <select class="form-select" id="sortSelect">
+                <option value="size" {% if current_sort == 'size' %}selected{% endif %}>Sort by Size</option>
+                <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Sort by Name</option>
+                <option value="modified" {% if current_sort == 'modified' %}selected{% endif %}>Sort by Date</option>
+                <option value="type" {% if current_sort == 'type' %}selected{% endif %}>Sort by Type</option>
+            </select>
+            <select class="form-select" id="typeFilter">
+                <option value="" {% if not current_type %}selected{% endif %}>All Types</option>
+                <option value="images" {% if current_type == 'images' %}selected{% endif %}>Images</option>
+                <option value="documents" {% if current_type == 'documents' %}selected{% endif %}>Documents</option>
+                <option value="videos" {% if current_type == 'videos' %}selected{% endif %}>Videos</option>
+                <option value="audio" {% if current_type == 'audio' %}selected{% endif %}>Audio</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-6 text-end">
+        <button class="btn btn-danger" id="bulkDeleteBtn" onclick="bulkDelete()" disabled>
+            <i class="bi bi-trash me-1"></i>Delete Selected
+        </button>
+        <button class="btn btn-primary" onclick="selectAll()">
+            <i class="bi bi-check-all me-1"></i>Select All
+        </button>
+    </div>
+</div>
+
+<!-- Files List -->
+<div class="card shadow">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Media Files</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if files %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="40">
+                            <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                        </th>
+                        <th>File</th>
+                        <th>Size</th>
+                        <th>Type</th>
+                        <th>Modified</th>
+                        <th>Location</th>
+                        <th width="100">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr class="file-row">
+                        <td>
+                            <input type="checkbox" class="form-check-input file-checkbox" 
+                                   data-file-path="{{ file.path }}" data-file-size="{{ file.size_mb }}">
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-{% if 'image' in file.type %}image{% elif 'video' in file.type %}camera-video{% elif 'audio' in file.type %}music-note{% elif 'pdf' in file.type %}file-pdf{% else %}file{% endif %} file-icon text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ file.name }}</div>
+                                    <small class="text-muted">{{ file.path }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ file.size_mb }} MB</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary file-type-badge">{{ file.type|default:"Unknown" }}</span>
+                        </td>
+                        <td>
+                            <small>{{ file.modified|date:"M d, Y H:i" }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ file.folder }}</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-danger-soft" 
+                                    onclick="deleteFile('{{ file.path }}', '{{ file.name }}', {{ file.size_mb }})"
+                                    title="Delete file">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if files.has_other_pages %}
+        <div class="card-footer bg-white">
+            <nav aria-label="Files pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if files.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ files.previous_page_number }}&sort={{ current_sort }}&type={{ current_type }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in files.paginator.page_range %}
+                        {% if files.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > files.number|add:'-3' and num < files.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}&sort={{ current_sort }}&type={{ current_type }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if files.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ files.next_page_number }}&sort={{ current_sort }}&type={{ current_type }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Page {{ files.number }} of {{ files.paginator.num_pages }} 
+                    ({{ files.paginator.count }} total files)
+                </small>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-folder-x display-1 text-muted"></i>
+            <h5 class="mt-3">No media files found</h5>
+            <p class="text-muted">Your media directory is empty or no files match the current filter.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This action cannot be undone!</p>
+                <p>File size: <span id="deleteFileSize"></span> MB</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete File</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cleanup Modal -->
+<div class="modal fade" id="cleanupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cleanup Orphaned Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="cleanupModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Scanning for orphaned files...</p>
+                </div>
+            </div>
+            <div class="modal-footer" id="cleanupModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmCleanupBtn">Delete Orphaned Files</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentDeletePath = '';
+let freedSpaceToday = 0;
+
+// Handle sort and filter changes
+document.getElementById('sortSelect').addEventListener('change', function() {
+    updateUrl();
+});
+
+document.getElementById('typeFilter').addEventListener('change', function() {
+    updateUrl();
+});
+
+function updateUrl() {
+    const sort = document.getElementById('sortSelect').value;
+    const type = document.getElementById('typeFilter').value;
+    const url = new URL(window.location);
+    url.searchParams.set('sort', sort);
+    if (type) {
+        url.searchParams.set('type', type);
+    } else {
+        url.searchParams.delete('type');
+    }
+    url.searchParams.delete('page'); // Reset to first page
+    window.location.href = url.toString();
+}
+
+// File selection
+document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateBulkDeleteButton();
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('file-checkbox')) {
+        updateBulkDeleteButton();
+    }
+});
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    document.getElementById('selectAllCheckbox').checked = !allChecked;
+    updateBulkDeleteButton();
+}
+
+function updateBulkDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    bulkDeleteBtn.disabled = checkedBoxes.length === 0;
+    bulkDeleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i>Delete Selected (${checkedBoxes.length})`;
+}
+
+// Single file deletion
+function deleteFile(filePath, fileName, fileSize) {
+    currentDeletePath = filePath;
+    document.getElementById('deleteFileName').textContent = fileName;
+    document.getElementById('deleteFileSize').textContent = fileSize;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!currentDeletePath) return;
+    
+    fetch("{% url 'delete_media_file' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'file_path=' + encodeURIComponent(currentDeletePath)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            freedSpaceToday += data.freed_space;
+            document.getElementById('freedSpace').textContent = freedSpaceToday.toFixed(2) + ' MB';
+            
+            // Remove the row from the table
+            const checkbox = document.querySelector(`[data-file-path="${currentDeletePath}"]`);
+            if (checkbox) {
+                checkbox.closest('tr').remove();
+            }
+            
+            // Show success message
+            showAlert('success', 'File deleted successfully! Freed ' + data.freed_space + ' MB of space.');
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        currentDeletePath = '';
+    })
+    .catch(error => {
+        showAlert('danger', 'Error deleting file: ' + error.message);
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    });
+});
+
+// Bulk deletion
+function bulkDelete() {
+    const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+    if (checkedBoxes.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${checkedBoxes.length} selected files? This action cannot be undone!`)) {
+        return;
+    }
+    
+    const filePaths = Array.from(checkedBoxes).map(cb => cb.dataset.filePath);
+    
+    fetch("{% url 'bulk_delete_media' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({file_paths: filePaths})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            freedSpaceToday += data.freed_space;
+            document.getElementById('freedSpace').textContent = freedSpaceToday.toFixed(2) + ' MB';
+            
+            // Remove deleted rows
+            checkedBoxes.forEach(cb => cb.closest('tr').remove());
+            
+            // Update bulk delete button
+            updateBulkDeleteButton();
+            
+            let message = `Successfully deleted ${data.deleted_count} files! Freed ${data.freed_space} MB of space.`;
+            if (data.errors.length > 0) {
+                message += ` ${data.errors.length} files could not be deleted.`;
+            }
+            
+            showAlert('success', message);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error deleting files: ' + error.message);
+    });
+}
+
+// Cleanup orphaned files
+function cleanupOrphanedFiles() {
+    const modal = new bootstrap.Modal(document.getElementById('cleanupModal'));
+    modal.show();
+    
+    // First, scan for orphaned files
+    fetch("{% url 'cleanup_orphaned_files' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'confirm=false'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modalBody = document.getElementById('cleanupModalBody');
+            const modalFooter = document.getElementById('cleanupModalFooter');
+            
+            if (data.orphaned_count === 0) {
+                modalBody.innerHTML = `
+                    <div class="text-center">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">No Orphaned Files Found</h5>
+                        <p class="text-muted">All files in your media directory are properly referenced in the database.</p>
+                    </div>
+                `;
+                modalFooter.style.display = 'none';
+            } else {
+                modalBody.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Orphaned Files Found</h6>
+                        <p class="mb-2">Found <strong>${data.orphaned_count}</strong> orphaned files taking up <strong>${data.orphaned_size} MB</strong> of space.</p>
+                        <p class="mb-0">These files are no longer referenced in the database and can be safely deleted.</p>
+                    </div>
+                    
+                    <h6>Preview of files to be deleted:</h6>
+                    <ul class="list-group list-group-flush">
+                        ${data.preview.map(file => `<li class="list-group-item py-1"><small>${file}</small></li>`).join('')}
+                        ${data.orphaned_count > 10 ? `<li class="list-group-item py-1"><small class="text-muted">... and ${data.orphaned_count - 10} more files</small></li>` : ''}
+                    </ul>
+                `;
+                modalFooter.style.display = 'block';
+            }
+        } else {
+            document.getElementById('cleanupModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle me-2"></i>Error</h6>
+                    <p class="mb-0">${data.message}</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('cleanupModalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle me-2"></i>Error</h6>
+                <p class="mb-0">Failed to scan for orphaned files: ${error.message}</p>
+            </div>
+        `;
+    });
+}
+
+document.getElementById('confirmCleanupBtn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
+    
+    fetch("{% url 'cleanup_orphaned_files' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'confirm=true'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            freedSpaceToday += data.freed_space;
+            document.getElementById('freedSpace').textContent = freedSpaceToday.toFixed(2) + ' MB';
+            
+            document.getElementById('cleanupModalBody').innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle-fill me-2"></i>Cleanup Complete</h6>
+                    <p class="mb-0">Successfully deleted <strong>${data.deleted_count}</strong> orphaned files and freed <strong>${data.freed_space} MB</strong> of space.</p>
+                </div>
+            `;
+            
+            document.getElementById('cleanupModalFooter').style.display = 'none';
+            
+            // Refresh the page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            document.getElementById('cleanupModalBody').innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle me-2"></i>Error</h6>
+                    <p class="mb-0">${data.message}</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('cleanupModalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle me-2"></i>Error</h6>
+                <p class="mb-0">Failed to delete orphaned files: ${error.message}</p>
+            </div>
+        `;
+    });
+});
+
+// Utility function to show alerts
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Insert alert at the top of the content
+    const content = document.querySelector('main.container');
+    content.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        const alert = content.querySelector('.alert');
+        if (alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 5000);
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

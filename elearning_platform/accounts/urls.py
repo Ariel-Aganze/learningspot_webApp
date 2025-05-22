@@ -39,6 +39,12 @@ urlpatterns = [
     path('organizations/<int:organization_id>/set-period/', views.set_organization_period, name='set_organization_period'),
 
     path('students/create/', views.create_student, name='create_student'),
+
+    # Media management URLs (admin only)
+    path('media-management/', views.media_management, name='media_management'),
+    path('media/delete/', views.delete_media_file, name='delete_media_file'),
+    path('media/bulk-delete/', views.bulk_delete_media, name='bulk_delete_media'),
+    path('media/cleanup/', views.cleanup_orphaned_files, name='cleanup_orphaned_files'),
     
 
 

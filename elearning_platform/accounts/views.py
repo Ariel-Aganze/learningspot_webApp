@@ -40,6 +40,14 @@ from django.urls import reverse
 from .models import User, StudentProfile, Organization, CourseApproval
 from datetime import datetime  
 
+from django.conf import settings
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from pathlib import Path
+import mimetypes
+from django.utils import timezone
+from datetime import datetime
+
 
 
 def is_admin(user):
@@ -933,3 +941,281 @@ def create_student(request):
     return render(request, 'accounts/create_student.html', {
         'form': form,
     })
+
+@login_required
+@user_passes_test(is_admin)
+def media_management(request):
+    """View for admin to manage media files"""
+    
+    # Get all media files
+    media_root = Path(settings.MEDIA_ROOT)
+    files_info = []
+    total_size = 0
+    
+    if media_root.exists():
+        for file_path in media_root.rglob('*'):
+            if file_path.is_file():
+                try:
+                    file_stat = file_path.stat()
+                    file_size = file_stat.st_size
+                    total_size += file_size
+                    
+                    # Get relative path from media root
+                    relative_path = file_path.relative_to(media_root)
+                    
+                    # Get file info
+                    file_info = {
+                        'name': file_path.name,
+                        'path': str(relative_path),
+                        'full_path': str(file_path),
+                        'size': file_size,
+                        'size_mb': round(file_size / (1024 * 1024), 2),
+                        'modified': datetime.fromtimestamp(file_stat.st_mtime),
+                        'type': mimetypes.guess_type(str(file_path))[0] or 'unknown',
+                        'folder': str(relative_path.parent) if relative_path.parent != Path('.') else 'root'
+                    }
+                    files_info.append(file_info)
+                except (OSError, PermissionError):
+                    continue
+    
+    # Sort by size (largest first) by default
+    sort_by = request.GET.get('sort', 'size')
+    if sort_by == 'size':
+        files_info.sort(key=lambda x: x['size'], reverse=True)
+    elif sort_by == 'name':
+        files_info.sort(key=lambda x: x['name'].lower())
+    elif sort_by == 'modified':
+        files_info.sort(key=lambda x: x['modified'], reverse=True)
+    elif sort_by == 'type':
+        files_info.sort(key=lambda x: x['type'])
+    
+    # Filter by file type if requested
+    file_type = request.GET.get('type', '')
+    if file_type:
+        if file_type == 'images':
+            files_info = [f for f in files_info if f['type'] and f['type'].startswith('image/')]
+        elif file_type == 'documents':
+            files_info = [f for f in files_info if f['type'] and (f['type'].startswith('application/') or f['type'] == 'text/plain')]
+        elif file_type == 'videos':
+            files_info = [f for f in files_info if f['type'] and f['type'].startswith('video/')]
+        elif file_type == 'audio':
+            files_info = [f for f in files_info if f['type'] and f['type'].startswith('audio/')]
+    
+    # Pagination
+    paginator = Paginator(files_info, 20)  # 20 files per page
+    page = request.GET.get('page', 1)
+    
+    try:
+        files = paginator.page(page)
+    except:
+        files = paginator.page(1)
+    
+    # Calculate total size in different units
+    total_size_mb = round(total_size / (1024 * 1024), 2)
+    total_size_gb = round(total_size / (1024 * 1024 * 1024), 2)
+    
+    # Get file type counts
+    type_counts = {}
+    for file_info in files_info:
+        file_type = file_info['type'].split('/')[0] if file_info['type'] and '/' in file_info['type'] else 'other'
+        type_counts[file_type] = type_counts.get(file_type, 0) + 1
+    
+    context = {
+        'files': files,
+        'total_files': len(files_info),
+        'total_size': total_size,
+        'total_size_mb': total_size_mb,
+        'total_size_gb': total_size_gb,
+        'current_sort': sort_by,
+        'current_type': file_type,
+        'type_counts': type_counts,
+    }
+    
+    return render(request, 'accounts/media_management.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def delete_media_file(request):
+    """AJAX view to delete a media file"""
+    if request.method == 'POST':
+        file_path = request.POST.get('file_path')
+        
+        if not file_path:
+            return JsonResponse({'success': False, 'message': 'No file path provided'})
+        
+        # Security check - ensure the file is within media root
+        media_root = Path(settings.MEDIA_ROOT)
+        full_path = media_root / file_path
+        
+        try:
+            # Resolve to absolute path and check if it's within media root
+            resolved_path = full_path.resolve()
+            if not str(resolved_path).startswith(str(media_root.resolve())):
+                return JsonResponse({'success': False, 'message': 'Invalid file path'})
+            
+            if resolved_path.exists() and resolved_path.is_file():
+                file_size = resolved_path.stat().st_size
+                resolved_path.unlink()  # Delete the file
+                
+                # Also try to remove empty parent directories
+                parent = resolved_path.parent
+                try:
+                    if parent != media_root and not any(parent.iterdir()):
+                        parent.rmdir()
+                except OSError:
+                    pass  # Directory not empty or other error
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'File deleted successfully',
+                    'freed_space': round(file_size / (1024 * 1024), 2)  # MB
+                })
+            else:
+                return JsonResponse({'success': False, 'message': 'File not found'})
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error deleting file: {str(e)}'})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+@user_passes_test(is_admin)
+def bulk_delete_media(request):
+    """AJAX view to delete multiple media files"""
+    if request.method == 'POST':
+        import json
+        
+        try:
+            data = json.loads(request.body)
+            file_paths = data.get('file_paths', [])
+        except:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON data'})
+        
+        if not file_paths:
+            return JsonResponse({'success': False, 'message': 'No files selected'})
+        
+        media_root = Path(settings.MEDIA_ROOT)
+        deleted_count = 0
+        total_freed_space = 0
+        errors = []
+        
+        for file_path in file_paths:
+            try:
+                full_path = media_root / file_path
+                resolved_path = full_path.resolve()
+                
+                # Security check
+                if not str(resolved_path).startswith(str(media_root.resolve())):
+                    errors.append(f"Invalid path: {file_path}")
+                    continue
+                
+                if resolved_path.exists() and resolved_path.is_file():
+                    file_size = resolved_path.stat().st_size
+                    resolved_path.unlink()
+                    deleted_count += 1
+                    total_freed_space += file_size
+                    
+                    # Try to remove empty parent directory
+                    parent = resolved_path.parent
+                    try:
+                        if parent != media_root and not any(parent.iterdir()):
+                            parent.rmdir()
+                    except OSError:
+                        pass
+                else:
+                    errors.append(f"File not found: {file_path}")
+                    
+            except Exception as e:
+                errors.append(f"Error deleting {file_path}: {str(e)}")
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_count': deleted_count,
+            'freed_space': round(total_freed_space / (1024 * 1024), 2),  # MB
+            'errors': errors
+        })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@login_required
+@user_passes_test(is_admin)
+def cleanup_orphaned_files(request):
+    """Remove files that are no longer referenced in the database"""
+    if request.method == 'POST':
+        from accounts.models import PaymentProof
+        from courses.models import CourseMaterial, AssignmentSubmission
+        
+        # Get all file paths referenced in the database
+        referenced_files = set()
+        
+        # Payment proof images
+        for proof in PaymentProof.objects.exclude(proof_image=''):
+            if proof.proof_image:
+                referenced_files.add(proof.proof_image.name)
+        
+        # Course material files
+        for material in CourseMaterial.objects.exclude(file=''):
+            if material.file:
+                referenced_files.add(material.file.name)
+        
+        # Assignment submission files
+        for submission in AssignmentSubmission.objects.exclude(submission_file=''):
+            if submission.submission_file:
+                referenced_files.add(submission.submission_file.name)
+        
+        # Get all actual files
+        media_root = Path(settings.MEDIA_ROOT)
+        actual_files = []
+        
+        if media_root.exists():
+            for file_path in media_root.rglob('*'):
+                if file_path.is_file():
+                    relative_path = file_path.relative_to(media_root)
+                    actual_files.append(str(relative_path))
+        
+        # Find orphaned files
+        orphaned_files = []
+        for file_path in actual_files:
+            if file_path not in referenced_files:
+                orphaned_files.append(file_path)
+        
+        # Delete orphaned files if confirmed
+        if request.POST.get('confirm') == 'true':
+            deleted_count = 0
+            total_freed_space = 0
+            
+            for file_path in orphaned_files:
+                try:
+                    full_path = media_root / file_path
+                    if full_path.exists():
+                        file_size = full_path.stat().st_size
+                        full_path.unlink()
+                        deleted_count += 1
+                        total_freed_space += file_size
+                except Exception:
+                    continue
+            
+            return JsonResponse({
+                'success': True,
+                'deleted_count': deleted_count,
+                'freed_space': round(total_freed_space / (1024 * 1024), 2)
+            })
+        else:
+            # Just return the count for confirmation
+            total_size = 0
+            for file_path in orphaned_files:
+                try:
+                    full_path = media_root / file_path
+                    if full_path.exists():
+                        total_size += full_path.stat().st_size
+                except Exception:
+                    continue
+            
+            return JsonResponse({
+                'success': True,
+                'orphaned_count': len(orphaned_files),
+                'orphaned_size': round(total_size / (1024 * 1024), 2),
+                'preview': orphaned_files[:10]  # Show first 10 files as preview
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})

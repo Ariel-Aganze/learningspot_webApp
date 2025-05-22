@@ -201,7 +201,7 @@
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
-                <img src="{% static 'images/g_logo.png' %}" alt="Learning Spot" class="d-inline-block align-text-top">
+                <img src="{% static 'images/g_logo.png' %}" alt="LearningSpot" class="d-inline-block align-text-top">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -237,12 +237,16 @@
                                     Administration
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'course_create' %}">Add Course</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'question_list' %}">Manage Questions</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'quiz_list' %}">Manage Quizzes</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'create_teacher' %}">Add Teacher</a></li>
-                                </ul>
+            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+            <li><a class="dropdown-item" href="{% url 'course_create' %}">Add Course</a></li>
+            <li><a class="dropdown-item" href="{% url 'question_list' %}">Manage Questions</a></li>
+            <li><a class="dropdown-item" href="{% url 'quiz_list' %}">Manage Quizzes</a></li>
+            <li><a class="dropdown-item" href="{% url 'create_teacher' %}">Add Teacher</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'media_management' %}">
+                <i class="bi bi-hdd-stack me-2"></i>Media Management
+            </a></li>
+        </ul>
                             </li>
                         {% elif user.is_teacher %}
                             <li class="nav-item">
