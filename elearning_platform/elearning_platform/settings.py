@@ -130,5 +130,5 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'arielaganze@gmail.com'  # Use a real email address
 EMAIL_HOST_PASSWORD = 'lwaj qfto velt oeti'  # Use an app password for Gmail
-DEFAULT_FROM_EMAIL = 'E-Learning Platform <arielaganze@gmail.com>'
-SITE_NAME = 'E-Learning Platform'
+DEFAULT_FROM_EMAIL = 'LearningSpot <arielaganze@gmail.com>'
+SITE_NAME = 'LearningSpot'
