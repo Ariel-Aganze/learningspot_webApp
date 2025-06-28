@@ -119,7 +119,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://9570-2c0f-eb68-64d-8500-2530-5f32-e70c-2746.ngrok-free.app',
+    'https://f8b2-2c0f-eb68-693-a400-b981-b5a8-ac9e-4443.ngrok-free.app',
     # Add more domains if needed
 ]
 
