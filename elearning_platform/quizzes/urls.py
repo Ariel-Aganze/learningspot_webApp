@@ -2,29 +2,27 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Student views
-    path('take-placement-test/<int:course_id>/', views.take_placement_test, name='take_placement_test'),
-    path('start/<int:quiz_id>/', views.start_quiz, name='start_quiz'),
-    path('take/<int:attempt_id>/', views.take_quiz, name='take_quiz'),
-    path('results/<int:attempt_id>/', views.quiz_results, name='quiz_results'),
-    path('timer-update/<int:attempt_id>/', views.quiz_timer_update, name='quiz_timer_update'),
+    path('course/<int:course_id>/placement-test/', views.take_placement_test, name='take_placement_test'),
     
-    # Admin views
-    path('questions/', views.question_list, name='question_list'),
-    path('questions/create/', views.question_create, name='question_create'),
-    path('questions/update/<int:question_id>/', views.question_update, name='question_update'),
-    path('', views.quiz_list, name='quiz_list'),
-    path('create/', views.quiz_create, name='quiz_create'),
-    path('update/<int:quiz_id>/', views.quiz_update, name='quiz_update'),
-    path('questions/<int:quiz_id>/', views.quiz_questions, name='quiz_questions'),
-    path('results/<int:quiz_id>/', views.quiz_results_admin, name='quiz_results_admin'),
+    # Teacher/Admin Quiz Management
+    path('list/', views.quiz_list, name='quiz_list'),
+    path('create/', views.create_quiz, name='create_quiz'),
+    path('<int:quiz_id>/edit/', views.edit_quiz, name='edit_quiz'),
+    path('<int:quiz_id>/questions/edit/', views.edit_quiz_questions, name='edit_quiz_questions'),
+    path('question/<int:question_id>/choices/edit/', views.edit_question_choices, name='edit_question_choices'),
+    path('<int:quiz_id>/detail/', views.quiz_detail, name='quiz_detail'),
+    path('<int:quiz_id>/delete/', views.delete_quiz, name='delete_quiz'),
+    path('<int:quiz_id>/analytics/', views.quiz_analytics, name='quiz_analytics'),
     
-    # Toggle placement test status
-    path('toggle-placement-test/<int:quiz_id>/', views.toggle_placement_test, name='toggle_placement_test'),
+    # Student Quiz Taking
+    path('student/list/', views.student_quiz_list, name='student_quiz_list'),
+    path('<int:quiz_id>/start/', views.start_quiz, name='start_quiz'),
+    path('attempt/<int:attempt_id>/take/', views.take_quiz, name='take_quiz'),
+    path('attempt/<int:attempt_id>/results/', views.quiz_results, name='quiz_results'),
+    path('attempt/<int:attempt_id>/review/', views.quiz_review, name='quiz_review'),
     
-    # Teacher grading views
-    path('grade/<int:quiz_id>/', views.grade_submissions, name='grade_submissions'),
-    path('grade/answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
-    path('grade-submissions/all/', views.grade_submissions_all, name='grade_submissions_all'),
-    path('results/all/', views.quiz_results_all, name='quiz_results_all'),
+    # AJAX endpoints
+    path('update-question-order/', views.update_question_order, name='update_question_order'),
+    path('attempt/<int:attempt_id>/update-timer/', views.update_timer, name='update_timer'),
+    path('attempt/<int:attempt_id>/get-timer/', views.get_timer, name='get_timer'),
 ]

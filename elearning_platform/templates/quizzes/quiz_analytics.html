@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Analytics - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Analytics: {{ quiz.title }}</h2>
+                <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Quiz
+                </a>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="row mb-5">
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light mb-3">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Total Attempts</h5>
+                            <div class="display-4">{{ total_attempts }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light mb-3">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Average Score</h5>
+                            <div class="display-4">{{ avg_score|floatformat:1 }}%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card border-0 bg-light mb-3">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Pass Rate</h5>
+                            <div class="display-4">{{ pass_rate|floatformat:1 }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if question_stats %}
+                <div class="question-stats mb-4">
+                    <h4 class="mb-3">Question Performance</h4>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Question</th>
+                                    <th>Type</th>
+                                    <th>Points</th>
+                                    <th>Correct Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in question_stats %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ stat.question.text|truncatechars:50 }}</td>
+                                        <td>{{ stat.question.get_question_type_display }}</td>
+                                        <td>{{ stat.question.points }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                                    <div class="progress-bar {% if stat.correct_rate >= 70 %}bg-success{% elif stat.correct_rate >= 40 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                         style="width: {{ stat.correct_rate }}%;" 
+                                                         role="progressbar" 
+                                                         aria-valuenow="{{ stat.correct_rate }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <span>{{ stat.correct_rate|floatformat:1 }}%</span>
+                                            </div>
+                                            <small class="text-muted">{{ stat.correct_answers }}/{{ stat.total_answers }} correct</small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <p>No quiz attempts have been made yet. Statistics will be available once students start taking the quiz.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Taking Quiz: {{ quiz.title }} - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">{{ quiz.title }}</h2>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        Question <span class="fw-bold">{{ question_number }}</span> of {{ total_questions }}
+                    </div>
+                    <div class="bg-light rounded p-2 text-center" style="min-width: 120px;">
+                        <div class="small text-muted">Time Remaining</div>
+                        <div id="timer" class="fs-5 fw-bold">{{ time_limit }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <form method="post" id="quiz-form">
+                {% csrf_token %}
+                
+                <div class="question-container mb-4">
+                    <h4 class="mb-3">{{ question.text }}</h4>
+                    
+                    {% if question.image %}
+                        <div class="text-center mb-3">
+                            <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid mb-3" style="max-height: 300px;">
+                        </div>
+                    {% endif %}
+                    
+                    {% if question.audio %}
+                        <div class="audio-player mb-3 text-center">
+                            <audio controls>
+                                <source src="{{ question.audio.url }}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="voice-recording-container">
+                        {% if existing_recording %}
+                            <div class="mb-3">
+                                <p><strong>Your current recording:</strong></p>
+                                <audio controls>
+                                    <source src="{{ existing_recording.url }}" type="audio/wav">
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="voice-recorder mb-3">
+                            <div class="d-flex justify-content-center mb-3">
+                                <button type="button" id="startRecording" class="btn btn-danger me-2">
+                                    <i class="bi bi-mic-fill"></i> Start Recording
+                                </button>
+                                <button type="button" id="stopRecording" class="btn btn-secondary" disabled>
+                                    <i class="bi bi-stop-fill"></i> Stop Recording
+                                </button>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div id="recordingStatus" class="mb-2">Click 'Start Recording' to begin</div>
+                                <div id="recordingTime" class="fs-4 fw-bold">0:00</div>
+                            </div>
+                            
+                            <div id="audioPreview" class="mt-3 text-center" style="display: none;">
+                                <p><strong>Preview:</strong></p>
+                                <audio id="audioPlayback" controls></audio>
+                            </div>
+                            
+                            <input type="hidden" name="voice_data" id="voiceData">
+                            <input type="hidden" name="duration" id="recordingDuration">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    {# No Previous button for one-way navigation #}
+                    <div></div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        {% if question_number == total_questions %}
+                            Finish Quiz
+                        {% else %}
+                            Next <i class="bi bi-arrow-right"></i>
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let timeRemaining = {{ time_limit }};
+        const timerDisplay = document.getElementById('timer');
+        const quizForm = document.getElementById('quiz-form');
+        
+        // Question timer functionality
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        function updateTimer() {
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.textContent = "0:00";
+                quizForm.submit();
+                return;
+            }
+            
+            timeRemaining--;
+            timerDisplay.textContent = formatTime(timeRemaining);
+            
+            if (timeRemaining <= 10) {
+                timerDisplay.classList.add('text-danger');
+            }
+            
+            if (timeRemaining % 5 === 0) {
+                saveTimerState();
+            }
+        }
+        
+        function saveTimerState() {
+            fetch('{% url "update_timer" attempt.id %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    question_id: {{ question.id }},
+                    time_remaining: timeRemaining
+                })
+            }).catch(error => console.error('Error saving timer state:', error));
+        }
+        
+        timerDisplay.textContent = formatTime(timeRemaining);
+        const timerInterval = setInterval(updateTimer, 1000);
+        
+        fetch(`{% url "get_timer" attempt.id %}?question_id={{ question.id }}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.time_remaining) {
+                timeRemaining = parseInt(data.time_remaining);
+                timerDisplay.textContent = formatTime(timeRemaining);
+                
+                if (timeRemaining <= 10) {
+                    timerDisplay.classList.add('text-danger');
+                }
+            }
+        })
+        .catch(error => console.error('Error loading timer state:', error));
+        
+        window.addEventListener('beforeunload', saveTimerState);
+        
+        // Voice recording functionality
+        const startButton = document.getElementById('startRecording');
+        const stopButton = document.getElementById('stopRecording');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const recordingTime = document.getElementById('recordingTime');
+        const audioPreview = document.getElementById('audioPreview');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const voiceDataInput = document.getElementById('voiceData');
+        const durationInput = document.getElementById('recordingDuration');
+        
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordingTimer;
+        let recordingDuration = 0;
+        
+        // Format recording time
+        function formatRecordingTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Update recording time display
+        function updateRecordingTime() {
+            recordingDuration++;
+            recordingTime.textContent = formatRecordingTime(recordingDuration);
+            durationInput.value = recordingDuration;
+        }
+        
+        // Start recording
+        startButton.addEventListener('click', function() {
+            // Request microphone access
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    // Enable stop button, disable start button
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    
+                    // Reset audio chunks
+                    audioChunks = [];
+                    
+                    // Initialize media recorder
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    // Collect audio chunks
+                    mediaRecorder.addEventListener('dataavailable', event => {
+                        audioChunks.push(event.data);
+                    });
+                    
+                    // Handle recording stop
+                    mediaRecorder.addEventListener('stop', () => {
+                        // Create audio blob
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        // Set audio source for preview
+                        audioPlayback.src = audioUrl;
+                        audioPreview.style.display = 'block';
+                        
+                        // Convert blob to base64 data URI for form submission
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = function() {
+                            const base64data = reader.result;
+                            voiceDataInput.value = base64data;
+                        };
+                        
+                        // Stop all tracks in the stream
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                    recordingStatus.textContent = 'Recording...';
+                    recordingStatus.classList.add('text-danger');
+                    
+                    // Start recording timer
+                    recordingDuration = 0;
+                    recordingTime.textContent = '0:00';
+                    recordingTimer = setInterval(updateRecordingTime, 1000);
+                })
+                .catch(error => {
+                    console.error('Error accessing microphone:', error);
+                    recordingStatus.textContent = 'Error: Could not access microphone';
+                    recordingStatus.classList.add('text-danger');
+                });
+        });
+        
+        // Stop recording
+        stopButton.addEventListener('click', function() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                clearInterval(recordingTimer);
+                
+                recordingStatus.textContent = 'Recording stopped';
+                recordingStatus.classList.remove('text-danger');
+                
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        });
+        
+        // Automatically stop recording if time limit is reached (2 minutes max)
+        const MAX_RECORDING_TIME = 120; // 2 minutes in seconds
+        
+        function checkRecordingTimeLimit() {
+            if (recordingDuration >= MAX_RECORDING_TIME && mediaRecorder && mediaRecorder.state === 'recording') {
+                stopButton.click();
+            }
+        }
+        
+        // Check recording time limit every second
+        setInterval(checkRecordingTimeLimit, 1000);
+    });
+</script>
+{% endblock %}

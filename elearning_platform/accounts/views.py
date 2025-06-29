@@ -58,44 +58,18 @@ def is_teacher(user):
 
 def signup_view(request):
     if request.method == 'POST':
-        user_form = UserRegisterForm(request.POST)
-        org_form = OrganizationForm(request.POST)
-        
-        if user_form.is_valid():
-            user = user_form.save(commit=False)
-            
-            # Handle organization information if checked
-            if user_form.cleaned_data.get('is_organization'):
-                if org_form.is_valid():
-                    user.is_organization = True
-                    user.company_name = org_form.cleaned_data.get('company_name')
-                    user.contact_person = org_form.cleaned_data.get('contact_person')
-                    user.phone_number = org_form.cleaned_data.get('phone_number')
-                    user.number_of_trainees = org_form.cleaned_data.get('number_of_trainees')
-                    messages.success(request, 'Organization registration submitted. Our team will contact you shortly.')
-                else:
-                    return render(request, 'accounts/signup.html', {
-                        'user_form': user_form,
-                        'org_form': org_form
-                    })
-            
-            user.save()
-            
-            # Create student profile for non-organization users
-            if not user.is_organization:
-                StudentProfile.objects.create(user=user)
-                login(request, user)
-                return redirect('student_dashboard')
-            else:
-                return redirect('login')
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Create student profile for all users
+            StudentProfile.objects.create(user=user)
+            login(request, user)
+            messages.success(request, 'Your account has been created successfully!')
+            return redirect('student_dashboard')
     else:
-        user_form = UserRegisterForm()
-        org_form = OrganizationForm()
+        form = UserRegisterForm()
     
-    return render(request, 'accounts/signup.html', {
-        'user_form': user_form,
-        'org_form': org_form
-    })
+    return render(request, 'accounts/signup.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':

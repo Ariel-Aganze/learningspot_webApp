@@ -1,253 +1,106 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Test Results - E-Learning Platform{% endblock %}
-
-{% block extra_css %}
-<style>
-    .question-image {
-        max-width: 100%;
-        max-height: 200px;
-        margin-bottom: 10px;
-    }
-    
-    .audio-player {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .choice-image {
-        max-width: 100px;
-        max-height: 100px;
-        margin-bottom: 5px;
-    }
-    
-    .file-preview {
-        max-width: 200px;
-        max-height: 200px;
-        object-fit: contain;
-    }
-</style>
-{% endblock %}
+{% block title %}Quiz Results - E-Learning Platform{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow mb-4">
-            <div class="card-header bg-white">
-                <h2 class="text-center mb-0">
-                    {% if attempt.quiz.is_placement_test %}
-                        Placement Test Results
-                    {% else %}
-                        Quiz Results
-                    {% endif %}
-                </h2>
-                <p class="text-center text-muted mb-0">{{ attempt.quiz.title }}</p>
-            </div>
-            <div class="card-body text-center">
-                <div class="mb-4">
-                    {% if attempt.quiz.is_placement_test %}
-                        {% if attempt.result == 'beginner' %}
-                            <div class="display-1 text-primary mb-2">Beginner</div>
-                            <p class="lead">You've been placed at the Beginner level.</p>
-                        {% elif attempt.result == 'intermediate' %}
-                            <div class="display-1 text-primary mb-2">Intermediate</div>
-                            <p class="lead">You've been placed at the Intermediate level.</p>
-                        {% elif attempt.result == 'advanced' %}
-                            <div class="display-1 text-primary mb-2">Advanced</div>
-                            <p class="lead">You've been placed at the Advanced level.</p>
-                        {% else %}
-                            <div class="display-1 text-danger mb-2">Failed</div>
-                            <p class="lead">You did not meet the minimum passing score.</p>
-                        {% endif %}
-                    {% else %}
-                        {% if attempt.result == 'passed' %}
-                            <div class="display-1 text-success mb-2">Passed</div>
-                            <p class="lead">Congratulations! You passed the quiz.</p>
-                        {% else %}
-                            <div class="display-1 text-danger mb-2">Failed</div>
-                            <p class="lead">You did not meet the minimum passing score.</p>
-                        {% endif %}
-                    {% endif %}
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="card border-0">
-                            <div class="card-body">
-                                <h5 class="card-title">Your Score</h5>
-                                <p class="card-text display-6">{{ attempt.score }}%</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0">
-                            <div class="card-body">
-                                <h5 class="card-title">Passing Score</h5>
-                                <p class="card-text display-6">{{ attempt.quiz.passing_score }}%</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0">
-                            <div class="card-body">
-                                <h5 class="card-title">Status</h5>
-                                <p class="card-text display-6">
-                                    {% if attempt.status == 'completed' %}
-                                        <span class="badge bg-success">Completed</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">Timed Out</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    {% if attempt.quiz.is_placement_test %}
-                        <p>Your test results and level have been saved. An administrator will assign you to a teacher based on your proficiency level.</p>
-                    {% else %}
-                        <p>Your quiz results have been saved.</p>
-                    {% endif %}
-                    <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
-                </div>
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Quiz Results: {{ quiz.title }}</h2>
+                <a href="{% url 'student_quiz_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Quizzes
+                </a>
             </div>
         </div>
         
-        <!-- Answers Review -->
-        <div class="card shadow">
-            <div class="card-header bg-white">
-                <h4 class="mb-0">Answers Review</h4>
-            </div>
-            <div class="card-body">
-                {% for answer in answers %}
-                    <div class="mb-4 p-3 {% if answer.is_correct %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %} rounded">
-                        <p class="mb-2"><strong>Question {{ forloop.counter }}:</strong> {{ answer.question.question.text }}</p>
-                        
-                        {% with question_type=answer.question.question.question_type %}
-                        
-                        <!-- Question media if present -->
-                        {% if answer.question.question.image %}
-                            <div class="mb-2">
-                                <img src="{{ answer.question.question.image.url }}" alt="Question Image" class="question-image">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Score Summary</h5>
+                            <div class="display-4 text-center mb-3">
+                                {{ attempt.score|floatformat:1 }}%
                             </div>
-                        {% endif %}
-                        
-                        {% if answer.question.question.audio %}
-                            <div class="mb-2">
-                                <audio controls class="audio-player">
-                                    <source src="{{ answer.question.question.audio.url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar {% if attempt.score >= 70 %}bg-success{% else %}bg-danger{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ attempt.score }}%;" 
+                                     aria-valuenow="{{ attempt.score }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ attempt.score|floatformat:1 }}%
+                                </div>
                             </div>
-                        {% endif %}
-                        
-                        <!-- Different answer types -->
-                        {% if question_type == 'multiple_choice' or question_type == 'true_false' or question_type == 'dropdown' or question_type == 'star_rating' or question_type == 'image_choice' or question_type == 'image_rating' %}
-                            <p class="mb-2"><strong>Your Answer:</strong> 
-                                {% if answer.selected_choice %}
-                                    {% if answer.selected_choice.image %}
-                                        <img src="{{ answer.selected_choice.image.url }}" alt="{{ answer.selected_choice.text }}" class="choice-image">
-                                    {% endif %}
-                                    {{ answer.selected_choice.text }}
-                                {% else %}
-                                    No answer provided
-                                {% endif %}
-                            </p>
-                            
-                            <!-- Show correct answer if wrong -->
-                            {% if not answer.is_correct %}
-                                <p class="mb-2"><strong>Correct Answer:</strong> 
-                                    {% for choice in answer.question.question.choices.all %}
-                                        {% if choice.is_correct %}
-                                            {% if choice.image %}
-                                                <img src="{{ choice.image.url }}" alt="{{ choice.text }}" class="choice-image">
-                                            {% endif %}
-                                            {{ choice.text }}
-                                        {% endif %}
-                                    {% endfor %}
-                                </p>
-                            {% endif %}
-                        
-                        {% elif question_type == 'multi_select' or question_type == 'likert_scale' or question_type == 'matrix' %}
-                            <p class="mb-2"><strong>Your Answer:</strong> Multiple selection</p>
-                            <!-- For multi-select, would need custom handling to show selections -->
-                        
-                        {% elif question_type == 'matching' %}
-                            <p class="mb-2"><strong>Your Matches:</strong></p>
-                            <!-- For matching, would need custom handling to show matches -->
-                        
-                        {% elif question_type == 'short_answer' or question_type == 'long_answer' %}
-                            <p class="mb-2"><strong>Your Answer:</strong> 
-                                {% if answer.text_answer %}
-                                    {{ answer.text_answer.text }}
-                                {% else %}
-                                    No answer provided
-                                {% endif %}
-                            </p>
-                            
-                            <!-- Text answers need to be manually graded -->
-                            <p class="mb-2">
-                                <strong>Status:</strong> 
-                                {% if answer.is_correct %}
-                                    <span class="text-success">Correct</span>
-                                {% else %}
-                                    <span class="text-muted">Pending teacher review</span>
-                                {% endif %}
-                            </p>
-                        
-                        {% elif question_type == 'file_upload' %}
-                            <p class="mb-2"><strong>Your Submission:</strong></p>
-                            {% if answer.file_answer %}
-                                {% if answer.file_answer.file_type and answer.file_answer.file_type|slice:":5" == "image" %}
-                                    <img src="{{ answer.file_answer.file.url }}" alt="File Upload" class="file-preview">
-                                {% else %}
-                                    <a href="{{ answer.file_answer.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View Uploaded File</a>
-                                {% endif %}
-                                <p class="mt-1 mb-0">
-                                    <strong>Status:</strong> 
-                                    {% if answer.is_correct %}
-                                        <span class="text-success">Approved</span>
-                                    {% else %}
-                                        <span class="text-muted">Pending teacher review</span>
-                                    {% endif %}
-                                </p>
-                            {% else %}
-                                No file uploaded
-                            {% endif %}
-                        
-                        {% elif question_type == 'voice_record' %}
-                            <p class="mb-2"><strong>Your Recording:</strong></p>
-                            {% if answer.voice_recording %}
-                                <audio controls>
-                                    <source src="{{ answer.voice_recording.audio_file.url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
-                                <p class="mt-1 mb-0">
-                                    <strong>Status:</strong> 
-                                    {% if answer.is_correct %}
-                                        <span class="text-success">Approved</span>
-                                    {% else %}
-                                        <span class="text-muted">Pending teacher review</span>
-                                    {% endif %}
-                                </p>
-                            {% else %}
-                                No recording provided
-                            {% endif %}
-                        {% endif %}
-                        
-                        {% endwith %}
-                        
-                        <p class="mb-0">
-                            {% if answer.is_correct %}
-                                <span class="text-success"><i class="bi bi-check-circle"></i> Correct</span>
-                            {% else %}
-                                <span class="text-danger"><i class="bi bi-x-circle"></i> Incorrect</span>
-                            {% endif %}
-                            <span class="ms-3 text-muted">Time taken: {{ answer.time_taken }} seconds</span>
-                        </p>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Points Earned
+                                    <span class="badge bg-primary rounded-pill">{{ points_earned }}/{{ total_possible }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Correct Answers
+                                    <span class="badge bg-success rounded-pill">{{ correct_answers }}/{{ total_questions }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Time Taken
+                                    <span>{{ attempt.start_time|timesince:attempt.end_time }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Result
+                                    <span class="badge {% if attempt.result == 'passed' or attempt.result == 'advanced' or attempt.result == 'intermediate' %}bg-success{% else %}bg-warning{% endif %} rounded-pill">
+                                        {{ attempt.result|title }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                {% endfor %}
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quiz Information</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Quiz
+                                    <span>{{ quiz.title }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Course
+                                    <span>{{ quiz.course.title }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Completed
+                                    <span>{{ attempt.end_time|date:"F j, Y, g:i a" }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Type
+                                    <span class="badge {% if is_placement_test %}bg-primary{% else %}bg-info{% endif %}">
+                                        {{ is_placement_test|yesno:"Placement Test,Regular Quiz" }}
+                                    </span>
+                                </li>
+                                
+                                {% if is_placement_test %}
+                                    <li class="list-group-item">
+                                        <div class="text-center">
+                                            <h6>Placement Result</h6>
+                                            <div class="display-6 mb-2">{{ attempt.result|title }} Level</div>
+                                            <p class="mb-0 text-muted">Your proficiency level has been updated based on this test.</p>
+                                        </div>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mb-4">
+                <a href="{% url 'quiz_review' attempt.id %}" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Review Your Answers
+                </a>
             </div>
         </div>
     </div>

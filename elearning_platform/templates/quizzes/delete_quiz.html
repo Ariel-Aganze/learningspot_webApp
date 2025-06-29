@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Quiz - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Delete Quiz</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">Are you sure you want to delete the quiz "<strong>{{ quiz.title }}</strong>"?</p>
+                    <p class="alert alert-warning">This action cannot be undone. All questions, choices, and student attempts associated with this quiz will be permanently deleted.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="text-center mt-4">
+                            <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-danger">Delete Quiz</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

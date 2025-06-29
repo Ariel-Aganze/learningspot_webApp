@@ -67,8 +67,12 @@ WSGI_APPLICATION = 'elearning_platform.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'elearning_platform',  
+        'USER': 'postgres',  
+        'PASSWORD': 'arikuagz',  
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

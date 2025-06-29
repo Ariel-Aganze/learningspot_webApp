@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Edit Question Choices - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Edit Choices</h2>
+                <a href="{% url 'edit_quiz_questions' quiz.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Questions
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="question-info mb-4 p-3 bg-light rounded">
+                <h5>Question</h5>
+                <p>{{ question.text }}</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Type:</strong> {{ question.get_question_type_display }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Points:</strong> {{ question.points }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {{ formset.management_form }}
+                
+                <div id="choices-container">
+                    {% for form in formset %}
+                        <div class="choice-form mb-3 border rounded p-3 position-relative">
+                            <div class="position-absolute top-0 end-0 p-2">
+                                <div class="form-check">
+                                    {{ form.DELETE }}
+                                    <label class="form-check-label text-danger" for="{{ form.DELETE.id_for_label }}">
+                                        Delete
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <h6>Choice #<span class="choice-number">{{ forloop.counter }}</span></h6>
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.non_field_errors }}
+                                </div>
+                            {% endif %}
+                            
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    {{ form.text|as_crispy_field }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.is_correct|as_crispy_field }}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.image|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.match_text|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="button" id="add-choice" class="btn btn-success me-2">
+                        <i class="bi bi-plus-circle"></i> Add Choice
+                    </button>
+                    <button type="submit" class="btn btn-primary">Save Choices</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('choices-container');
+        const addButton = document.getElementById('add-choice');
+        const totalFormset = document.getElementById('id_form-TOTAL_FORMS');
+        const questionType = '{{ question.question_type }}';
+        
+        // Function to update choice numbering
+        function updateChoiceNumbers() {
+            document.querySelectorAll('.choice-number').forEach((el, index) => {
+                el.textContent = index + 1;
+            });
+        }
+        
+        // Function to handle correct choices based on question type
+        function handleCorrectChoices() {
+            // For single-select questions, ensure only one choice is marked correct
+            if (['multiple_choice', 'true_false', 'dropdown'].includes(questionType)) {
+                const correctCheckboxes = document.querySelectorAll('input[name$="-is_correct"]');
+                
+                correctCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Uncheck all other checkboxes
+                            correctCheckboxes.forEach(cb => {
+                                if (cb !== this && !cb.closest('.choice-form').querySelector('input[name$="-DELETE"]').checked) {
+                                    cb.checked = false;
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Add choice button click handler
+        addButton.addEventListener('click', function() {
+            const forms = document.querySelectorAll('.choice-form');
+            const formCount = forms.length;
+            
+            // Clone the last form
+            const lastForm = forms[formCount - 1];
+            const newForm = lastForm.cloneNode(true);
+            
+            // Update form index
+            const formRegex = new RegExp(`form-(\\d+)-`,'g');
+            const replacement = `form-${formCount}-`;
+            newForm.innerHTML = newForm.innerHTML.replace(formRegex, replacement);
+            
+            // Clear values in the new form
+            newForm.querySelectorAll('input:not([type=hidden]):not([type=checkbox]), textarea').forEach(input => {
+                input.value = '';
+            });
+            
+            // Reset file inputs
+            newForm.querySelectorAll('input[type=file]').forEach(input => {
+                const parent = input.parentElement;
+                const newInput = document.createElement('input');
+                newInput.type = 'file';
+                newInput.name = input.name;
+                newInput.className = input.className;
+                newInput.id = input.id;
+                parent.replaceChild(newInput, input);
+            });
+            
+            // Uncheck checkboxes
+            newForm.querySelectorAll('input[type=checkbox]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Add the new form to the container
+            container.appendChild(newForm);
+            
+            // Update the total form count
+            totalFormset.value = formCount + 1;
+            
+            // Update choice numbering
+            updateChoiceNumbers();
+            
+            // Apply correct choice handling
+            handleCorrectChoices();
+        });
+        
+        // Initialize correct choice handling
+        handleCorrectChoices();
+    });
+</script>
+{% endblock %}

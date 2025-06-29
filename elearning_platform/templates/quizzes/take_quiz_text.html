@@ -43,26 +43,22 @@
                         </div>
                     {% endif %}
                     
-                    <div class="choices-container">
-                        {% for choice in choices %}
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="radio" name="choice" id="choice_{{ choice.id }}" value="{{ choice.id }}" {% if selected_choice_id == choice.id %}checked{% endif %}>
-                                <label class="form-check-label" for="choice_{{ choice.id }}">
-                                    {{ choice.text }}
-                                    
-                                    {% if choice.image %}
-                                        <div class="mt-2">
-                                            <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail" style="max-height: 150px;">
-                                        </div>
-                                    {% endif %}
-                                </label>
+                    <div class="text-answer-container">
+                        {% if question.question_type == 'short_answer' %}
+                            <div class="form-group">
+                                <label for="text_answer">Your Answer:</label>
+                                <textarea name="text_answer" id="text_answer" class="form-control" rows="3">{{ text_answer }}</textarea>
                             </div>
-                        {% endfor %}
+                        {% else %}
+                            <div class="form-group">
+                                <label for="text_answer">Your Answer:</label>
+                                <textarea name="text_answer" id="text_answer" class="form-control" rows="6">{{ text_answer }}</textarea>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 
                 <div class="d-flex justify-content-between">
-                    {# No Previous button for one-way navigation #}
                     <div></div>
                     
                     <button type="submit" class="btn btn-primary">

@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Review - E-Learning Platform{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Review: {{ quiz.title }}</h2>
+                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Results
+                </a>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="review-summary mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Score:</strong> {{ attempt.score|floatformat:1 }}%</p>
+                        <p><strong>Result:</strong> 
+                            <span class="badge {% if attempt.result == 'passed' or attempt.result == 'advanced' or attempt.result == 'intermediate' %}bg-success{% else %}bg-warning{% endif %}">
+                                {{ attempt.result|title }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p><strong>Completed:</strong> {{ attempt.end_time|date:"F j, Y, g:i a" }}</p>
+                        <p><strong>Time Taken:</strong> {{ attempt.start_time|timesince:attempt.end_time }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="questions-review">
+                <h4 class="mb-3">Question Review</h4>
+                
+                {% for question in questions %}
+                    <div class="question-card mb-4 border rounded p-3">
+                        <h5 class="mb-3">Question {{ forloop.counter }}</h5>
+                        
+                        <div class="question-text mb-3">
+                            <p>{{ question.text }}</p>
+                            
+                            {% if question.image %}
+                                <div class="text-center mb-3">
+                                    <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid" style="max-height: 200px;">
+                                </div>
+                            {% endif %}
+                            
+                            {% if question.audio %}
+                                <div class="audio-player mb-3">
+                                    <audio controls>
+                                        <source src="{{ question.audio.url }}" type="audio/mpeg">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="answer-section">
+                            {% with answer=question_answers|get:question.id %}
+                                {% if answer %}
+                                    <div class="your-answer mb-3">
+                                        <h6>Your Answer:</h6>
+                                        
+                                        {% if question.question_type in 'multiple_choice,true_false,dropdown' %}
+                                            <p>
+                                                {% if answer.selected_choice %}
+                                                    {{ answer.selected_choice.text }}
+                                                    
+                                                    {% if answer.selected_choice.image %}
+                                                        <div class="mt-2">
+                                                            <img src="{{ answer.selected_choice.image.url }}" alt="Choice Image" class="img-thumbnail" style="max-height: 100px;">
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if answer.is_correct %}
+                                                        <span class="badge bg-success ms-2">Correct</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger ms-2">Incorrect</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">No answer provided</span>
+                                                {% endif %}
+                                            </p>
+                                            
+                                            {% if not answer.is_correct %}
+                                                <div class="correct-answer">
+                                                    <h6>Correct Answer:</h6>
+                                                    {% for choice in question.choices.all %}
+                                                        {% if choice.is_correct %}
+                                                            <p>{{ choice.text }}</p>
+                                                            
+                                                            {% if choice.image %}
+                                                                <div class="mt-2">
+                                                                    <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail" style="max-height: 100px;">
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            
+                                        {% elif question.question_type in 'short_answer,long_answer' %}
+                                            <div class="text-answer p-3 bg-light">
+                                                {% if answer.text_answer %}
+                                                    <p>{{ answer.text_answer|linebreaks }}</p>
+                                                    
+                                                    {% if answer.is_correct %}
+                                                        <span class="badge bg-success">Correct</span>
+                                                    {% elif answer.is_correct == False %}
+                                                        <span class="badge bg-danger">Incorrect</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning">Pending Review</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <p class="text-muted">No answer provided</p>
+                                                {% endif %}
+                                            </div>
+                                            
+                                        {% elif question.question_type == 'file_upload' %}
+                                            <div class="file-answer">
+                                                {% if answer.file_answer %}
+                                                    <p>
+                                                        <a href="{{ answer.file_answer.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-file-earmark"></i> View Submitted File
+                                                        </a>
+                                                        
+                                                        {% if answer.is_correct %}
+                                                            <span class="badge bg-success ms-2">Correct</span>
+                                                        {% elif answer.is_correct == False %}
+                                                            <span class="badge bg-danger ms-2">Incorrect</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning ms-2">Pending Review</span>
+                                                        {% endif %}
+                                                    </p>
+                                                {% else %}
+                                                    <p class="text-muted">No file uploaded</p>
+                                                {% endif %}
+                                            </div>
+                                            
+                                        {% elif question.question_type == 'voice_record' %}
+                                            <div class="voice-answer">
+                                                {% if answer.voice_answer %}
+                                                    <audio controls>
+                                                        <source src="{{ answer.voice_answer.recording.url }}" type="audio/wav">
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                    
+                                                    {% if answer.is_correct %}
+                                                        <span class="badge bg-success ms-2">Correct</span>
+                                                    {% elif answer.is_correct == False %}
+                                                        <span class="badge bg-danger ms-2">Incorrect</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning ms-2">Pending Review</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <p class="text-muted">No recording submitted</p>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No answer provided for this question</p>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                        <div class="question-info mt-3">
+                            <small class="text-muted">
+                                <strong>Question Type:</strong> {{ question.get_question_type_display }} | 
+                                <strong>Points:</strong> {{ question.points }} | 
+                                <strong>Time Limit:</strong> {{ question.time_limit }} seconds
+                            </small>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="card-footer bg-white">
+            <div class="text-center">
+                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Results
+                </a>
+                <a href="{% url 'student_quiz_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-list-check"></i> All Quizzes
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

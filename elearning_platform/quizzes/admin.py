@@ -1,28 +1,47 @@
 from django.contrib import admin
-from .models import Quiz, Question, Choice, QuizQuestion
+from .models import Quiz, Question, Choice, QuizAttempt, QuizAnswer, TextAnswer, FileAnswer, VoiceRecording
+
+class ChoiceInline(admin.TabularInline):
+    model = Choice
+    extra = 4
+
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ('text', 'quiz', 'question_type', 'points', 'order')
+    list_filter = ('quiz', 'question_type')
+    search_fields = ('text',)
+    inlines = [ChoiceInline]
+
+class QuestionInline(admin.TabularInline):
+    model = Question
+    extra = 1
+    show_change_link = True
 
 class QuizAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'is_active', 'is_placement_test')
-    list_filter = ('is_active', 'is_placement_test', 'course')
-    search_fields = ('title',)
+    list_display = ('title', 'course', 'is_active', 'is_placement_test', 'max_points', 'get_question_count')
+    list_filter = ('course', 'is_active', 'is_placement_test')
+    search_fields = ('title', 'description')
+    inlines = [QuestionInline]
     
-    # Optional: Add actions to bulk set/unset placement test status
-    actions = ['mark_as_placement_test', 'unmark_as_placement_test']
-    
-    def mark_as_placement_test(self, request, queryset):
-        # First, unmark any existing placement tests for the same courses
-        for quiz in queryset:
-            Quiz.objects.filter(course=quiz.course, is_placement_test=True).update(is_placement_test=False)
-        
-        # Then mark selected quizzes as placement tests
-        queryset.update(is_placement_test=True)
-        self.message_user(request, f"{queryset.count()} quizzes marked as placement tests.")
-    
-    def unmark_as_placement_test(self, request, queryset):
-        queryset.update(is_placement_test=False)
-        self.message_user(request, f"{queryset.count()} quizzes unmarked as placement tests.")
-    
-    mark_as_placement_test.short_description = "Mark selected quizzes as placement tests"
-    unmark_as_placement_test.short_description = "Unmark selected quizzes as placement tests"
+    def get_question_count(self, obj):
+        return obj.questions.count()
+    get_question_count.short_description = 'Questions'
+
+class QuizAnswerInline(admin.TabularInline):
+    model = QuizAnswer
+    extra = 0
+    readonly_fields = ('question', 'selected_choice', 'text_answer', 'file_answer', 'voice_answer', 'is_correct', 'points_earned')
+    can_delete = False
+
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = ('student', 'quiz', 'score', 'result', 'start_time', 'end_time', 'completed')
+    list_filter = ('quiz', 'completed', 'result')
+    search_fields = ('student__username', 'student__email', 'quiz__title')
+    readonly_fields = ('student', 'quiz', 'start_time', 'end_time', 'score', 'result', 'completed')
+    inlines = [QuizAnswerInline]
 
 admin.site.register(Quiz, QuizAdmin)
+admin.site.register(Question, QuestionAdmin)
+admin.site.register(QuizAttempt, QuizAttemptAdmin)
+admin.site.register(TextAnswer)
+admin.site.register(FileAnswer)
+admin.site.register(VoiceRecording)

@@ -6,19 +6,17 @@ from .models import CoursePeriod, Organization, User, PaymentProof, StudentProfi
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
-    is_organization = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={
-        'class': 'form-check-input',
-        'id': 'is_organization'
-    }))
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'is_organization']
+        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Add form-control class to all fields
         for field_name in self.fields:
             self.fields[field_name].widget.attrs.update({'class': 'form-control'})
+
 
 class OrganizationForm(forms.ModelForm):
     class Meta:
@@ -28,8 +26,9 @@ class OrganizationForm(forms.ModelForm):
             'company_name': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_person': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'number_of_trainees': forms.NumberInput(attrs={'class': 'form-control'})
+            'number_of_trainees': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'})
         }
+
 
 class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):

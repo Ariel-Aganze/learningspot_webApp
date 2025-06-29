@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Sign Up - E-Learning Platform{% endblock %}
+{% block title %}Create Quiz - E-Learning Platform{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -9,21 +9,19 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-white">
-                    <h2 class="text-center mb-0">Create Account</h2>
+                    <h2 class="mb-0">Create New Quiz</h2>
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
                         
-                        {{ form|crispy }}
+                        {{ quiz_form|crispy }}
                         
                         <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-primary">Sign Up</button>
+                            <a href="{% url 'quiz_list' %}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Create Quiz</button>
                         </div>
                     </form>
-                    <div class="text-center mt-3">
-                        <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
-                    </div>
                 </div>
             </div>
         </div>
