@@ -1,103 +1,192 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
 {% load static %}
 
 {% block title %}Edit Quiz Questions - E-Learning Platform{% endblock %}
+
+{% block extra_css %}
+<!-- Add any CSS for sortable questions here -->
+<link rel="stylesheet" href="{% static 'css/jquery-ui.min.css' %}">
+<style>
+    .question-form {
+        position: relative;
+    }
+    .handle {
+        cursor: grab;
+    }
+    .form-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="card shadow">
         <div class="card-header bg-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">Edit Questions: {{ quiz.title }}</h2>
-                <div>
-                    <span class="badge bg-primary me-2">Total Points: <span id="total-points">{{ total_points }}</span>/{{ max_points }}</span>
-                    <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-left"></i> Back to Quiz
-                    </a>
-                </div>
-            </div>
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <h2 class="mb-0">Edit Questions: {{ quiz.title }}</h2>
+            <span class="badge bg-primary ms-3" id="points-badge">
+                Total Points: <span id="total-points">{{ total_points }}</span>/{{ max_points }}
+            </span>
         </div>
+        <a href="{% url 'quiz_detail' quiz_id=quiz.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Quiz
+        </a>
+    </div>
+</div>
+        
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            {% if formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in formset.non_form_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <form method="post" enctype="multipart/form-data" id="question-form">
                 {% csrf_token %}
-                
                 {{ formset.management_form }}
                 
-                <div id="questions-container">
+                <div id="question-formset">
                     {% for form in formset %}
-                        <div class="question-form mb-4 border rounded p-3 position-relative">
-                            <div class="position-absolute top-0 end-0 p-2">
+                    <div class="question-form card mb-4" data-question-id="{{ form.instance.id|default:'' }}">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 handle">
+                                    <i class="bi bi-grip-vertical me-2"></i>
+                                    {% if form.instance.id %}Question #{{ forloop.counter }}{% else %}New Question{% endif %}
+                                </h5>
                                 <div class="form-check">
+                                    {{ form.DELETE.label_tag }}
                                     {{ form.DELETE }}
-                                    <label class="form-check-label text-danger" for="{{ form.DELETE.id_for_label }}">
-                                        Delete
-                                    </label>
                                 </div>
                             </div>
-                            
-                            <h5>Question #<span class="question-number">{{ forloop.counter }}</span></h5>
-                            
-                            {% if form.non_field_errors %}
-                                <div class="alert alert-danger">
-                                    {{ form.non_field_errors }}
-                                </div>
-                            {% endif %}
-                            
+                        </div>
+                        
+                        <div class="card-body">
                             {% for hidden in form.hidden_fields %}
                                 {{ hidden }}
                             {% endfor %}
                             
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-md-8">
-                                    {{ form.text|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.text.label_tag }}
+                                        {{ form.text }}
+                                        {% if form.text.errors %}
+                                            <div class="form-error">{{ form.text.errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                
                                 <div class="col-md-4">
-                                    {{ form.question_type|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.question_type.label_tag }}
+                                        {{ form.question_type }}
+                                        {% if form.question_type.errors %}
+                                            <div class="form-error">{{ form.question_type.errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-md-4">
-                                    {{ form.time_limit|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.points.label_tag }}
+                                        {{ form.points }}
+                                        {% if form.points.errors %}
+                                            <div class="form-error">{{ form.points.errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                
                                 <div class="col-md-4">
-                                    {{ form.points|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.time_limit.label_tag }}
+                                        {{ form.time_limit }}
+                                        {% if form.time_limit.errors %}
+                                            <div class="form-error">{{ form.time_limit.errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                
                                 <div class="col-md-4">
-                                    {{ form.order|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.order.label_tag }}
+                                        {{ form.order }}
+                                        {% if form.order.errors %}
+                                            <div class="form-error">{{ form.order.errors }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    {{ form.image|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.image.label_tag }}
+                                        {{ form.image }}
+                                        {% if form.image.errors %}
+                                            <div class="form-error">{{ form.image.errors }}</div>
+                                        {% endif %}
+                                        {% if form.instance.image %}
+                                            <div class="mt-2">
+                                                <img src="{{ form.instance.image.url }}" alt="Question Image" class="img-thumbnail" style="max-height: 100px;">
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                
                                 <div class="col-md-6">
-                                    {{ form.audio|as_crispy_field }}
+                                    <div class="form-group">
+                                        {{ form.audio.label_tag }}
+                                        {{ form.audio }}
+                                        {% if form.audio.errors %}
+                                            <div class="form-error">{{ form.audio.errors }}</div>
+                                        {% endif %}
+                                        {% if form.instance.audio %}
+                                            <div class="mt-2">
+                                                <audio controls>
+                                                    <source src="{{ form.instance.audio.url }}" type="audio/mpeg">
+                                                    Your browser does not support the audio element.
+                                                </audio>
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             
-                            {% if form.instance.pk %}
-                                <div class="text-center mt-2">
-                                    <a href="{% url 'edit_question_choices' form.instance.pk %}" class="btn btn-info btn-sm">
-                                        <i class="bi bi-list-ul"></i> Edit Choices
+                            {% if form.instance.id %}
+                                <div class="mt-3">
+                                    <a href="{% url 'edit_question_choices' question_id=form.instance.id %}" class="btn btn-outline-primary">
+                                        <i class="bi bi-list-check"></i> Edit Choices
                                     </a>
                                 </div>
                             {% else %}
-                                <div class="text-center mt-2">
-                                    <span class="text-muted">Save the question first to add choices</span>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> You'll be able to add choices after saving this question.
                                 </div>
                             {% endif %}
                         </div>
+                    </div>
                     {% endfor %}
                 </div>
                 
-                <div class="text-center mt-4">
-                    <button type="button" id="add-question" class="btn btn-success me-2">
-                        <i class="bi bi-plus-circle"></i> Add Question
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" id="add-question" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle"></i> Add Another Question
                     </button>
-                    <button type="submit" class="btn btn-primary">Save All Questions</button>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Save Questions
+                    </button>
                 </div>
             </form>
         </div>
@@ -107,122 +196,121 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('questions-container');
-        const addButton = document.getElementById('add-question');
-        const totalFormset = document.getElementById('id_form-TOTAL_FORMS');
-        const maxPoints = {{ max_points }};
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to update total points
+    function updateTotalPoints() {
+        var totalPoints = 0;
         
-        // Function to update question numbering
-        function updateQuestionNumbers() {
-            document.querySelectorAll('.question-number').forEach((el, index) => {
-                el.textContent = index + 1;
-            });
+        // Sum points from all non-deleted questions
+        $('.question-form').each(function() {
+            if (!$(this).find('input[name$="-DELETE"]').is(':checked')) {
+                var pointsInput = $(this).find('input[name$="-points"]');
+                var points = parseInt(pointsInput.val()) || 0;
+                totalPoints += points;
+            }
+        });
+        
+        // Update the display
+        $('#total-points').text(totalPoints);
+        
+        // Update badge color based on match with max points
+        var maxPoints = {{ max_points }};
+        if (totalPoints === maxPoints) {
+            $('#points-badge').removeClass('bg-danger bg-warning').addClass('bg-success');
+        } else if (totalPoints < maxPoints) {
+            $('#points-badge').removeClass('bg-success bg-danger').addClass('bg-warning');
+        } else {
+            $('#points-badge').removeClass('bg-success bg-warning').addClass('bg-danger');
         }
+    }
+    
+    // Add event listeners to all points inputs
+    function addPointsListeners() {
+        $('input[name$="-points"]').on('input', updateTotalPoints);
+        $('input[name$="-DELETE"]').on('change', updateTotalPoints);
+    }
+    
+    // Initial setup
+    addPointsListeners();
+    updateTotalPoints();
+    
+    // Add question button handler
+    $('#add-question').on('click', function(e) {
+        e.preventDefault();
+        console.log('Add button clicked'); // Debugging
         
-        // Function to calculate total points
-        function calculateTotalPoints() {
-            let total = 0;
-            document.querySelectorAll('input[name$="-points"]').forEach(input => {
-                if (!input.closest('.question-form').querySelector('input[name$="-DELETE"]').checked) {
-                    total += parseInt(input.value || 0);
+        // Get current form count
+        var totalForms = parseInt($('#id_form-TOTAL_FORMS').val());
+        console.log('Current total forms:', totalForms);
+        
+        // Clone the template form (first form)
+        var newForm = $('.question-form:first').clone();
+        console.log('Form cloned');
+        
+        // Update IDs and names
+        newForm.find(':input').each(function() {
+            var name = $(this).attr('name');
+            if (name) {
+                name = name.replace('form-0-', 'form-' + totalForms + '-');
+                $(this).attr('name', name);
+                $(this).attr('id', 'id_' + name);
+                
+                // Clear values
+                if (!$(this).is('[type=hidden]')) {
+                    $(this).val('');
                 }
-            });
-            
-            const totalPointsDisplay = document.getElementById('total-points');
-            totalPointsDisplay.textContent = total;
-            
-            // Add warning class if total doesn't match max points
-            if (total !== maxPoints) {
-                totalPointsDisplay.classList.add('text-danger');
-                totalPointsDisplay.classList.remove('text-success');
-            } else {
-                totalPointsDisplay.classList.add('text-success');
-                totalPointsDisplay.classList.remove('text-danger');
-            }
-        }
-        
-        // Add question button click handler
-        addButton.addEventListener('click', function() {
-            const forms = document.querySelectorAll('.question-form');
-            const formCount = forms.length;
-            
-            // Clone the last form
-            const lastForm = forms[formCount - 1];
-            const newForm = lastForm.cloneNode(true);
-            
-            // Update form index
-            const formRegex = new RegExp(`form-(\\d+)-`,'g');
-            const replacement = `form-${formCount}-`;
-            newForm.innerHTML = newForm.innerHTML.replace(formRegex, replacement);
-            
-            // Clear values in the new form
-            newForm.querySelectorAll('input:not([type=hidden]):not([type=checkbox]), textarea').forEach(input => {
-                input.value = '';
-            });
-            
-            // Reset file inputs
-            newForm.querySelectorAll('input[type=file]').forEach(input => {
-                const parent = input.parentElement;
-                const newInput = document.createElement('input');
-                newInput.type = 'file';
-                newInput.name = input.name;
-                newInput.className = input.className;
-                newInput.id = input.id;
-                parent.replaceChild(newInput, input);
-            });
-            
-            // Uncheck DELETE checkbox
-            const deleteCheckbox = newForm.querySelector('input[name$="-DELETE"]');
-            if (deleteCheckbox) {
-                deleteCheckbox.checked = false;
-            }
-            
-            // Set default values
-            const pointsInput = newForm.querySelector('input[name$="-points"]');
-            if (pointsInput) {
-                pointsInput.value = '10';
-            }
-
-            const timeLimitInput = newForm.querySelector('input[name$="-time_limit"]');
-            if (timeLimitInput) {
-                timeLimitInput.value = '60';
-            }
-            
-            const orderInput = newForm.querySelector('input[name$="-order"]');
-            if (orderInput) {
-                orderInput.value = formCount.toString();
-            }
-            
-            // Add the new form to the container
-            container.appendChild(newForm);
-            
-            // Update the total form count
-            totalFormset.value = formCount + 1;
-            
-            // Update question numbering
-            updateQuestionNumbers();
-            
-            // Calculate total points
-            calculateTotalPoints();
-        });
-        
-        // Add event listeners for DELETE checkboxes
-        document.addEventListener('change', function(e) {
-            if (e.target.name && e.target.name.endsWith('-DELETE')) {
-                calculateTotalPoints();
+                if ($(this).is('[type=checkbox]')) {
+                    $(this).prop('checked', false);
+                }
             }
         });
         
-        // Add event listeners for points inputs
-        document.addEventListener('input', function(e) {
-            if (e.target.name && e.target.name.endsWith('-points')) {
-                calculateTotalPoints();
+        // Update labels
+        newForm.find('label').each(function() {
+            var forAttr = $(this).attr('for');
+            if (forAttr) {
+                forAttr = forAttr.replace('form-0-', 'form-' + totalForms + '-');
+                $(this).attr('for', forAttr);
             }
         });
         
-        // Calculate total points on page load
-        calculateTotalPoints();
+        // Set default values for common fields
+        newForm.find('[name$="-order"]').val(totalForms);
+        newForm.find('[name$="-points"]').val('10');
+        newForm.find('[name$="-time_limit"]').val('60');
+        
+        // Remove image/audio previews
+        newForm.find('.mt-2').remove();
+        
+        // Update title
+        newForm.find('.card-header h5').html('<i class="bi bi-grip-vertical me-2"></i> New Question');
+        
+        // Remove edit choices button
+        newForm.find('a.btn-outline-primary').parent().html(`
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You'll be able to add choices after saving this question.
+            </div>
+        `);
+        
+        // Add to formset
+        $('#question-formset').append(newForm);
+        console.log('New form appended');
+        
+        // Update form count
+        $('#id_form-TOTAL_FORMS').val(totalForms + 1);
+        console.log('Total forms updated to:', totalForms + 1);
+        
+        // Add event listeners to the new form's points input
+        addPointsListeners();
+        
+        // Update total points
+        updateTotalPoints();
+        
+        // Scroll to new form
+        $('html, body').animate({
+            scrollTop: newForm.offset().top - 100
+        }, 500);
     });
+});
 </script>
 {% endblock %}

@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     'courses',
     'quizzes',
     'events',
+
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

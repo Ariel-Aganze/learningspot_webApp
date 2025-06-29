@@ -4,69 +4,121 @@
 {% block title %}Taking Quiz: {{ quiz.title }} - E-Learning Platform{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4">
     <div class="card shadow">
         <div class="card-header bg-white">
             <div class="d-flex justify-content-between align-items-center">
                 <h2 class="mb-0">{{ quiz.title }}</h2>
+                
                 <div class="d-flex align-items-center">
-                    <div class="me-3">
-                        Question <span class="fw-bold">{{ question_number }}</span> of {{ total_questions }}
-                    </div>
-                    <div class="bg-light rounded p-2 text-center" style="min-width: 120px;">
-                        <div class="small text-muted">Time Remaining</div>
-                        <div id="timer" class="fs-5 fw-bold">{{ time_limit }}</div>
+                    <div class="me-2">Time Remaining:</div>
+                    <div id="timer" class="badge bg-primary p-2" data-remaining="{{ remaining_time }}">
+                        <span id="minutes">--</span>:<span id="seconds">--</span>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="card-body">
-            <form method="post" id="quiz-form" enctype="multipart/form-data">
+            <!-- Progress bar -->
+            <div class="progress mb-4" style="height: 10px;">
+                <div class="progress-bar bg-success" 
+                     role="progressbar" 
+                     style="width: {{ progress_percentage }}%;" 
+                     aria-valuenow="{{ progress_percentage }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            </div>
+            
+            <div class="mb-3 d-flex justify-content-between">
+                <span>Question {{ question_number }} of {{ total_questions }}</span>
+                <span>Points: {{ question.points }}</span>
+            </div>
+            
+            <!-- Question content -->
+            <div class="question-content mb-4">
+                <h4>{{ question.text }}</h4>
+                
+                {% if question.image %}
+                <div class="my-3">
+                    <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid rounded" style="max-height: 300px;">
+                </div>
+                {% endif %}
+                
+                {% if question.audio %}
+                <div class="my-3">
+                    <audio controls class="w-100">
+                        <source src="{{ question.audio.url }}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Answer form -->
+            <form method="post" id="question-form">
                 {% csrf_token %}
                 
-                <div class="question-container mb-4">
-                    <h4 class="mb-3">{{ question.text }}</h4>
-                    
-                    {% if question.image %}
-                        <div class="text-center mb-3">
-                            <img src="{{ question.image.url }}" alt="Question Image" class="img-fluid mb-3" style="max-height: 300px;">
-                        </div>
-                    {% endif %}
-                    
-                    {% if question.audio %}
-                        <div class="audio-player mb-3 text-center">
-                            <audio controls>
-                                <source src="{{ question.audio.url }}" type="audio/mpeg">
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="file-upload-container">
-                        {% if existing_file %}
-                            <div class="mb-3">
-                                <p><strong>Current File:</strong> {{ existing_file.name }}</p>
-                                <a href="{{ existing_file.url }}" class="btn btn-sm btn-info" target="_blank">View File</a>
+                {% if question.question_type == 'multiple_choice' or question.question_type == 'true_false' %}
+                    <div class="list-group mb-4">
+                        {% for choice in choices %}
+                        <label class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <input type="radio" name="choice" value="{{ choice.id }}" class="form-check-input me-3" required>
+                                <div class="ms-2">
+                                    {% if choice.image %}
+                                    <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail mb-2" style="max-height: 100px;">
+                                    <br>
+                                    {% endif %}
+                                    {{ choice.text }}
+                                </div>
                             </div>
-                        {% endif %}
-                        
-                        <div class="form-group">
-                            <label for="file_answer">Upload File:</label>
-                            <input type="file" name="file_answer" id="file_answer" class="form-control">
-                            <small class="form-text text-muted">Supported file types: PDF, DOC, DOCX, JPG, PNG, etc.</small>
-                        </div>
+                        </label>
+                        {% endfor %}
                     </div>
-                </div>
                 
-                <div class="d-flex justify-content-between">
-                    <div></div>
+                {% elif question.question_type == 'multi_select' %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Select all correct answers. You must select all correct options and no incorrect options to get points.
+                    </div>
                     
+                    <div class="list-group mb-4">
+                        {% for choice in choices %}
+                        <label class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" name="choices" value="{{ choice.id }}" class="form-check-input me-3">
+                                <div class="ms-2">
+                                    {% if choice.image %}
+                                    <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail mb-2" style="max-height: 100px;">
+                                    <br>
+                                    {% endif %}
+                                    {{ choice.text }}
+                                </div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                
+                {% elif question.question_type == 'short_answer' %}
+                    <div class="form-group mb-4">
+                        <textarea name="text_answer" class="form-control" rows="3" placeholder="Type your answer here..." required></textarea>
+                    </div>
+                
+                {% elif question.question_type == 'long_answer' %}
+                    <div class="form-group mb-4">
+                        <textarea name="text_answer" class="form-control" rows="6" placeholder="Type your answer here..." required></textarea>
+                    </div>
+                
+                {% endif %}
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <span class="text-muted">You cannot go back to this question after submitting.</span>
                     <button type="submit" class="btn btn-primary">
                         {% if question_number == total_questions %}
                             Finish Quiz
                         {% else %}
-                            Next <i class="bi bi-arrow-right"></i>
+                            Next Question
                         {% endif %}
                     </button>
                 </div>
@@ -78,83 +130,63 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        let timeRemaining = {{ time_limit }};
-        const timerDisplay = document.getElementById('timer');
-        const quizForm = document.getElementById('quiz-form');
+    $(document).ready(function() {
+        // Timer functionality for individual question
+        var remainingTime = parseInt($('#timer').data('remaining'));
         
-        // Format time as MM:SS
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        }
-        
-        // Update timer display
         function updateTimer() {
-            if (timeRemaining <= 0) {
-                // Time's up - submit the form
+            if (remainingTime <= 0) {
+                // Time's up, submit the form
                 clearInterval(timerInterval);
-                timerDisplay.textContent = "0:00";
-                quizForm.submit();
+                $('#timer').removeClass('bg-primary').addClass('bg-danger');
+                $('#minutes').text('00');
+                $('#seconds').text('00');
+                
+                alert("Time's up for this question! Moving to the next question.");
+                document.getElementById('question-form').submit();
                 return;
             }
             
-            timeRemaining--;
-            timerDisplay.textContent = formatTime(timeRemaining);
+            // Calculate minutes and seconds
+            var minutes = Math.floor(remainingTime / 60);
+            var seconds = remainingTime % 60;
             
-            // Change color when time is running low
-            if (timeRemaining <= 10) {
-                timerDisplay.classList.add('text-danger');
+            // Display with leading zeros
+            $('#minutes').text(minutes < 10 ? '0' + minutes : minutes);
+            $('#seconds').text(seconds < 10 ? '0' + seconds : seconds);
+            
+            // Change color when less than 20% of time remains
+            var totalTime = {{ question.time_limit }};
+            var percentRemaining = (remainingTime / totalTime) * 100;
+            
+            if (percentRemaining < 20) {
+                $('#timer').removeClass('bg-primary').addClass('bg-danger');
+            } else if (percentRemaining < 50) {
+                $('#timer').removeClass('bg-primary bg-danger').addClass('bg-warning');
             }
             
-            // Save timer state periodically
-            if (timeRemaining % 5 === 0) {
-                saveTimerState();
-            }
+            remainingTime--;
         }
         
-        // Save timer state via AJAX
-        function saveTimerState() {
-            fetch('{% url "update_timer" attempt.id %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({
-                    question_id: {{ question.id }},
-                    time_remaining: timeRemaining
-                })
-            }).catch(error => console.error('Error saving timer state:', error));
-        }
+        // Initial update
+        updateTimer();
         
-        // Initialize timer
-        timerDisplay.textContent = formatTime(timeRemaining);
-        const timerInterval = setInterval(updateTimer, 1000);
+        // Start the timer
+        var timerInterval = setInterval(updateTimer, 1000);
         
-        // Load saved timer state if available
-        fetch(`{% url "get_timer" attempt.id %}?question_id={{ question.id }}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.time_remaining) {
-                timeRemaining = parseInt(data.time_remaining);
-                timerDisplay.textContent = formatTime(timeRemaining);
-                
-                if (timeRemaining <= 10) {
-                    timerDisplay.classList.add('text-danger');
-                }
-            }
-        })
-        .catch(error => console.error('Error loading timer state:', error));
+        // Handle form submission
+        $('#question-form').on('submit', function() {
+            clearInterval(timerInterval);
+            return true;
+        });
         
-        // Save timer state before unloading the page
-        window.addEventListener('beforeunload', saveTimerState);
+        // Warn before leaving the page
+        window.addEventListener('beforeunload', function(e) {
+            // Cancel the event
+            e.preventDefault();
+            // Chrome requires returnValue to be set
+            e.returnValue = '';
+        });
     });
 </script>
 {% endblock %}

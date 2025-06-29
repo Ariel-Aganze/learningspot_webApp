@@ -21,6 +21,30 @@
                 <div class="col-md-8">
                     <h5>Description</h5>
                     <p>{{ quiz.description|linebreaks }}</p>
+                    
+                    {% if not points_match %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 
+                        <strong>Points Mismatch:</strong> The total points from questions ({{ total_points }}) doesn't match the quiz's max points ({{ quiz.max_points }}).
+                        <div class="mt-2">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="adjustment_type" value="set_to_total">
+                                <button type="submit" name="adjust_max_points" class="btn btn-sm btn-outline-primary">
+                                    Set max points to {{ total_points }}
+                                </button>
+                            </form>
+                            
+                            <form method="post" class="d-inline ms-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="adjustment_type" value="adjust_questions">
+                                <button type="submit" name="adjust_max_points" class="btn btn-sm btn-outline-secondary">
+                                    Distribute {{ quiz.max_points }} points evenly
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="col-md-4">
                     <div class="card bg-light">
@@ -48,6 +72,8 @@
                                         <i class="bi bi-exclamation-triangle-fill text-warning" title="Total points don't match max points"></i>
                                     {% endif %}
                                 </li>
+                                <li><strong>Time Limit:</strong> {{ quiz.time_limit }} minutes</li>
+                                <li><strong>Passing Score:</strong> {{ quiz.passing_score }}%</li>
                                 <li><strong>Created:</strong> {{ quiz.created_at|date:"M d, Y" }}</li>
                                 <li><strong>Last Updated:</strong> {{ quiz.updated_at|date:"M d, Y" }}</li>
                             </ul>
@@ -93,6 +119,15 @@
                                     </tr>
                                 {% endfor %}
                             </tbody>
+                            {% if questions %}
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                                    <td><strong>{{ total_points }}</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
                         </table>
                     </div>
                 {% else %}
@@ -101,6 +136,25 @@
                     </div>
                 {% endif %}
             </div>
+            
+            {% if questions.count == 0 %}
+            <div class="alert alert-info">
+                <h5><i class="bi bi-info-circle"></i> Getting Started</h5>
+                <p>To create your quiz, follow these steps:</p>
+                <ol>
+                    <li>Click the "Edit Questions" button above</li>
+                    <li>Add your first question using the form provided</li>
+                    <li>Set the question type, points value, and time limit</li>
+                    <li>After saving, you can add answer choices for each question</li>
+                </ol>
+                <p>Need to add more than one question? Use the "Add Another Question" button on the question editor page.</p>
+                <div class="text-center mt-3">
+                    <a href="{% url 'edit_quiz_questions' quiz.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Your First Question
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
         <div class="card-footer bg-white">
             <div class="d-flex justify-content-between">

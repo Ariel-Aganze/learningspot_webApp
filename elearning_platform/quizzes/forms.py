@@ -1,5 +1,3 @@
-# Path: elearning_platform/quizzes/forms.py
-
 from django import forms
 from django.forms import inlineformset_factory, BaseInlineFormSet
 from django.core.exceptions import ValidationError
@@ -43,35 +41,31 @@ class BaseQuestionFormSet(BaseInlineFormSet):
         """Validate the formset as a whole"""
         super().clean()
         
-        # Check if at least one question is added
+        # Only validate if there are no form errors
         if any(self.errors):
             return
-            
-        if not any(cleaned_data and not cleaned_data.get('DELETE', False)
-                  for cleaned_data in self.cleaned_data):
-            raise ValidationError("At least one question is required.")
         
-        # Check if total points match the quiz's max_points
-        if self.instance.pk:  # Only check for existing quizzes
-            total_points = sum(form.cleaned_data.get('points', 0) 
-                              for form in self.forms 
-                              if form.cleaned_data and not form.cleaned_data.get('DELETE', False))
-            
-            if total_points != self.instance.max_points:
-                raise ValidationError(
-                    f"Total question points ({total_points}) must equal the quiz's maximum points ({self.instance.max_points})."
-                )
+        # Count non-deleted forms
+        valid_forms = 0
+        for form_data in self.cleaned_data:
+            if form_data and not form_data.get('DELETE', False):
+                valid_forms += 1
+        
+        # Check if we have at least one form
+        if valid_forms == 0:
+            raise ValidationError("At least one question is required.")
 
-# Create a formset for questions within a quiz
+# Create the formset with proper configuration - KEEP ONLY THIS ONE DEFINITION
 QuestionFormSet = inlineformset_factory(
     Quiz, 
     Question, 
     form=QuestionForm,
     formset=BaseQuestionFormSet,
-    extra=1,  # Show at least one empty form
+    fields=['text', 'question_type', 'image', 'audio', 'time_limit', 'points', 'order'],
+    extra=1,  # Start with one empty form
     can_delete=True,
-    min_num=1,  # Require at least one question
-    validate_min=True
+    max_num=50,  # Set a reasonable maximum
+    validate_max=True,
 )
 
 class ChoiceForm(forms.ModelForm):
@@ -122,7 +116,7 @@ ChoiceFormSet = inlineformset_factory(
     Choice, 
     form=ChoiceForm,
     formset=BaseChoiceFormSet,
-    extra=4,  # Show four empty forms by default
+    extra=5,  # Show four empty forms by default
     can_delete=True
 )
 

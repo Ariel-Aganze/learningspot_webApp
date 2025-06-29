@@ -7,44 +7,44 @@
 <div class="container py-5">
     <h1 class="mb-4">Available Quizzes</h1>
     
-    {% if available_quizzes %}
+    {% if quiz_data %}
         <div class="row">
-            {% for quiz in available_quizzes %}
+            {% for item in quiz_data %}
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-header bg-white">
-                            <h5 class="card-title mb-0">{{ quiz.title }}</h5>
+                            <h5 class="card-title mb-0">{{ item.quiz.title }}</h5>
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                {{ quiz.description|truncatewords:20 }}
+                                {{ item.quiz.description|truncatewords:20 }}
                             </p>
                             <p class="text-muted">
                                 <small>
-                                    <strong>Course:</strong> {{ quiz.course.title }}<br>
-                                    <strong>Questions:</strong> {{ quiz.get_question_count }}<br>
-                                    <strong>Max Points:</strong> {{ quiz.max_points }}
+                                    <strong>Course:</strong> {{ item.quiz.course.title }}<br>
+                                    <strong>Questions:</strong> {{ item.quiz.get_question_count }}<br>
+                                    <strong>Max Points:</strong> {{ item.quiz.max_points }}
                                 </small>
                             </p>
                             <div>
-                                {% if quiz.is_placement_test %}
+                                {% if item.quiz.is_placement_test %}
                                     <span class="badge bg-primary">Placement Test</span>
                                 {% else %}
                                     <span class="badge bg-info">Regular Quiz</span>
                                 {% endif %}
                                 
-                                {% if quiz.id in attempted_quizzes %}
+                                {% if item.is_attempted %}
                                     <span class="badge bg-success">Completed</span>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="card-footer bg-white text-center">
-                            {% if quiz.id in attempted_quizzes %}
-                                <a href="{% url 'quiz_results' attempted_quizzes|get_item:quiz.id %}" class="btn btn-outline-info">
+                            {% if item.is_attempted %}
+                                <a href="{% url 'quiz_results' item.attempt_id %}" class="btn btn-outline-info">
                                     <i class="bi bi-eye"></i> View Results
                                 </a>
                             {% else %}
-                                <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-primary">
+                                <a href="{% url 'start_quiz' item.quiz.id %}" class="btn btn-primary">
                                     <i class="bi bi-play-circle"></i> Start Quiz
                                 </a>
                             {% endif %}
