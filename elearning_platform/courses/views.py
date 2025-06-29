@@ -274,9 +274,10 @@ def student_course_dashboard(request, slug):
     # Count new quizzes
     new_quizzes_count = sum(1 for q in all_quizzes if getattr(q, 'is_new', False))
     
-    # Get quiz attempts and organize them by quiz ID
+    # Get quiz attempts and organize them by quiz ID - Here's the fix!
+    # Changed 'user' to 'student' to match the database field name
     quiz_attempts = QuizAttempt.objects.filter(
-        user=request.user,
+        student=request.user,  # Changed from user=request.user
         quiz__in=all_quizzes
     ).select_related('quiz')
     
@@ -323,8 +324,9 @@ def student_course_dashboard(request, slug):
     
     # Count completed assignments
     completed_items += assignment_submissions.filter(status='graded').count()
-    # Count completed quizzes
-    completed_items += quiz_attempts.filter(status__in=['completed', 'timed_out']).count()
+    
+    # Count completed quizzes - Using 'completed' field instead of 'status'
+    completed_items += quiz_attempts.filter(completed=True).count()
     
     if total_items > 0:
         progress_percentage = int((completed_items / total_items) * 100)

@@ -592,53 +592,86 @@ def take_quiz(request, attempt_id):
 
 @login_required
 def quiz_results(request, attempt_id):
-    """View to show results of a quiz attempt"""
-    attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
-    quiz = attempt.quiz
+    """View function for displaying quiz results to students."""
+    # Add logging to diagnose issues
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Accessing quiz_results for attempt_id: {attempt_id}")
     
-    # Mark the attempt as completed if not already
-    if not attempt.completed:
-        attempt.complete()
-    
-    # Get all questions and answers
-    questions = quiz.questions.all().order_by('order')
-    answers = attempt.answers.all()
-    
-    # Create a dictionary mapping questions to answers
-    question_answers = {}
-    for answer in answers:
-        question_answers[answer.question_id] = answer
-    
-    # Calculate statistics
-    total_questions = questions.count()
-    answered_questions = answers.count()
-    correct_answers = answers.filter(is_correct=True).count()
-    
-    # Calculate total points earned and possible
-    points_earned = answers.aggregate(total=Sum('points_earned'))['total'] or 0
-    total_possible = questions.aggregate(total=Sum('points'))['total'] or 0
-    
-    # Determine if this is a placement test
-    is_placement_test = quiz.is_placement_test
-    
-    # For placement tests, update the student's proficiency level
-    if is_placement_test and attempt.result:
-        profile = StudentProfile.objects.get(user=request.user)
-        profile.proficiency_level = attempt.result
-        profile.save()
-    
-    return render(request, 'quizzes/quiz_results.html', {
-        'attempt': attempt,
-        'quiz': quiz,
-        'questions': questions,
-        'question_answers': question_answers,
-        'total_questions': total_questions,
-        'answered_questions': answered_questions,
-        'correct_answers': correct_answers,
-        'points_earned': points_earned,
-        'total_possible': total_possible,
-        'is_placement_test': is_placement_test
-    })
+    try:
+        # Modified to handle field name changes - use student field
+        attempt = get_object_or_404(QuizAttempt, pk=attempt_id, student=request.user)
+        logger.debug(f"Found attempt for quiz: {attempt.quiz.title}")
+        
+        # If quiz is not completed yet, redirect to continue
+        # Check the 'completed' field instead of 'status'
+        if hasattr(attempt, 'completed'):
+            if not attempt.completed:
+                logger.debug("Attempt not completed, redirecting to take_quiz")
+                return redirect('take_quiz', attempt_id=attempt.id)
+        else:
+            # Fallback to status field if completed doesn't exist
+            if hasattr(attempt, 'status') and attempt.status == 'in_progress':
+                logger.debug("Attempt in progress, redirecting to take_quiz")
+                return redirect('take_quiz', attempt_id=attempt.id)
+        
+        # Get all answers for this attempt
+        answers = attempt.answers.all().select_related(
+            'question', 'question__question', 'selected_choice',
+            'text_answer', 'file_answer', 'voice_recording'
+        )
+        logger.debug(f"Found {answers.count()} answers for attempt")
+        
+        # Calculate statistics for the results page
+        total_questions = answers.count()
+        correct_answers = answers.filter(is_correct=True).count()
+        accuracy_percentage = (correct_answers / total_questions * 100) if total_questions > 0 else 0
+        logger.debug(f"Calculated stats: total_questions={total_questions}, correct_answers={correct_answers}")
+        
+        # Group questions by difficulty
+        beginner_questions = answers.filter(question__question__difficulty='beginner').count()
+        intermediate_questions = answers.filter(question__question__difficulty='intermediate').count()
+        advanced_questions = answers.filter(question__question__difficulty='advanced').count()
+        
+        beginner_correct = answers.filter(question__question__difficulty='beginner', is_correct=True).count()
+        intermediate_correct = answers.filter(question__question__difficulty='intermediate', is_correct=True).count()
+        advanced_correct = answers.filter(question__question__difficulty='advanced', is_correct=True).count()
+        
+        # Calculate percentages safely
+        beginner_percentage = (beginner_correct / beginner_questions * 100) if beginner_questions > 0 else 0
+        intermediate_percentage = (intermediate_correct / intermediate_questions * 100) if intermediate_questions > 0 else 0
+        advanced_percentage = (advanced_correct / advanced_questions * 100) if advanced_questions > 0 else 0
+        
+        logger.debug("Rendering quiz_results.html template")
+        return render(request, 'quizzes/quiz_results.html', {
+            'attempt': attempt,
+            'answers': answers,
+            'total_questions': total_questions,
+            'correct_answers': correct_answers,
+            'accuracy_percentage': accuracy_percentage,
+            'beginner_percentage': beginner_percentage,
+            'intermediate_percentage': intermediate_percentage,
+            'advanced_percentage': advanced_percentage
+        })
+    except Exception as e:
+        logger.error(f"Error in quiz_results: {str(e)}", exc_info=True)
+        messages.error(request, f"There was an error loading your quiz results: {str(e)}")
+        # Here's where we were redirecting to the dashboard - let's add a fallback
+        try:
+            # Try to at least show a basic result page without the answers
+            if 'attempt' in locals():
+                return render(request, 'quizzes/quiz_results.html', {
+                    'attempt': attempt,
+                    'answers': [],
+                    'total_questions': 0,
+                    'correct_answers': 0,
+                    'accuracy_percentage': 0,
+                    'error_message': f"Could not load all quiz data: {str(e)}"
+                })
+        except Exception as inner_e:
+            logger.error(f"Fallback error in quiz_results: {str(inner_e)}", exc_info=True)
+            
+        return redirect('student_dashboard')
 
 @login_required
 def quiz_review(request, attempt_id):

@@ -163,6 +163,7 @@
                             <th>Email</th>
                             <th>Level</th>
                             <th>Teacher</th>
+                            <th>Course</th>
                             <th>Organization</th>
                             <th>Status</th>
                             <th class="text-center">Actions</th>
@@ -195,6 +196,18 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% with periods=student.course_periods.all %}
+                                    {% if periods %}
+                                        {% for period in periods %}
+                                            <span class="badge bg-info">{{ period.course.title }}</span>
+                                            {% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Not enrolled</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
                                 {% if student.student_profile.organization %}
                                     <span class="badge bg-info">{{ student.student_profile.organization.name }}</span>
                                     {% if student.student_profile.organization.is_subscription_active %}
@@ -215,11 +228,6 @@
                             </td>
                             <td>
                                 <div class="d-flex justify-content-center gap-2">
-                                    {% if student.student_profile.assigned_teacher %}
-                                        <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Change Teacher</a>
-                                    {% else %}
-                                        <a href="{% url 'assign_teacher' student.id %}" class="btn btn-sm btn-outline-primary">Assign</a>
-                                    {% endif %}
                                     <a href="{% url 'set_course_periods' student.id %}" class="btn btn-sm btn-outline-info">Set Course Periods</a>
                                     <form method="post" action="{% url 'toggle_user_status' student.id %}" class="m-0">
                                         {% csrf_token %}
