@@ -642,6 +642,13 @@ def quiz_results(request, attempt_id):
             logger.debug("Attempt not completed, redirecting to take_quiz")
             return redirect('take_quiz', attempt_id=attempt.id)
         
+        # Ensure both status and completed flags are set correctly
+        if is_completed and (attempt.status != 'completed' or not attempt.completed):
+            attempt.status = 'completed'
+            attempt.completed = True
+            attempt.save()
+            logger.debug("Updated attempt status to completed")
+        
         # Get all answers for this attempt
         answers = attempt.get_answers()
         logger.debug(f"Found {answers.count()} answers for attempt")
@@ -678,8 +685,15 @@ def quiz_results(request, attempt_id):
                     beginner_percentage = 100
                     intermediate_percentage = 100
                     advanced_percentage = (accuracy_percentage - 75) * 4  # Scale to 100
+                    
+                # Update the student's proficiency level in their profile
+                if is_completed:
+                    student_profile = StudentProfile.objects.get(user=request.user)
+                    student_profile.proficiency_level = attempt.result  # The result is already 'beginner', 'intermediate', or 'advanced'
+                    student_profile.save()
+                    logger.debug(f"Updated student proficiency level to: {attempt.result}")
             except Exception as e:
-                logger.error(f"Error calculating level percentages: {str(e)}")
+                logger.error(f"Error calculating level percentages or updating profile: {str(e)}")
         
         return render(request, 'quizzes/quiz_results.html', {
             'attempt': attempt,

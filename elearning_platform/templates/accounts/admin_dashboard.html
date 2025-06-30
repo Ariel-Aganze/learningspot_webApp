@@ -196,17 +196,15 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% with periods=student.course_periods.all %}
-                                    {% if periods %}
-                                        {% for period in periods %}
-                                            <span class="badge bg-info">{{ period.course.title }}</span>
-                                            {% if not forloop.last %}<br>{% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="badge bg-secondary">Not enrolled</span>
-                                    {% endif %}
-                                {% endwith %}
-                            </td>
+    {% if student.approved_courses.exists %}
+        {% for payment in student.approved_courses %}
+            <span class="badge bg-info">{{ payment.course.title }}</span>
+            {% if not forloop.last %}<br>{% endif %}
+        {% endfor %}
+    {% else %}
+        <span class="badge bg-secondary">Not enrolled</span>
+    {% endif %}
+</td>
                             <td>
                                 {% if student.student_profile.organization %}
                                     <span class="badge bg-info">{{ student.student_profile.organization.name }}</span>
@@ -706,4 +704,46 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the tab ID from URL hash, or default to 'pending'
+        let activeTabId = window.location.hash.substring(1) || 'pending';
+        
+        // Activate the tab
+        const activeTab = document.getElementById(activeTabId + '-tab');
+        if (activeTab) {
+            const tab = new bootstrap.Tab(activeTab);
+            tab.show();
+        }
+        
+        // Update URL hash when tabs are clicked
+        const tabLinks = document.querySelectorAll('#adminTabs .nav-link');
+        tabLinks.forEach(link => {
+            link.addEventListener('shown.bs.tab', function(event) {
+                const id = event.target.getAttribute('data-bs-target').substring(1);
+                window.location.hash = id;
+            });
+        });
+        
+        // Add hash to form actions to maintain tab state
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // Get the current hash
+                const hash = window.location.hash;
+                
+                // If the form doesn't have an action attribute or it's empty, add one
+                if (!this.getAttribute('action') || this.getAttribute('action') === '') {
+                    this.setAttribute('action', window.location.pathname + hash);
+                }
+                // If the form has an action but no hash, append the hash
+                else if (this.getAttribute('action').indexOf('#') === -1) {
+                    this.setAttribute('action', this.getAttribute('action') + hash);
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

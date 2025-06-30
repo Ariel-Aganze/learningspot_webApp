@@ -318,8 +318,7 @@ def teacher_dashboard(request):
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-    from accounts.models import Organization  # Add this import
-
+    
     # Get all data with proper ordering
     pending_payments = PaymentProof.objects.filter(status='pending').order_by('-submitted_at')
     students = User.objects.filter(user_type='student').order_by('-date_joined')
@@ -336,6 +335,14 @@ def admin_dashboard(request):
     
     # Get materials data
     materials = CourseMaterial.objects.all().order_by('course__title', 'order')
+    
+    # Get approved payment proofs for each student
+    for student in students:
+        # Add approved courses to each student object for display in the template
+        student.approved_courses = PaymentProof.objects.filter(
+            user=student,
+            status='approved'
+        ).select_related('course')
     
     # Pagination - 5 items per page for each tab
     paginator_payments = Paginator(pending_payments, 5)
