@@ -27,7 +27,6 @@
                 
                 <div class="question-container mb-4">
                     <h4 class="mb-3">{{ question.text }}</h4>
-                    <p class="text-info mb-3"><i class="bi bi-info-circle"></i> Select all correct answers (multiple selections allowed)</p>
                     
                     {% if question.image %}
                         <div class="text-center mb-3">
@@ -44,21 +43,25 @@
                         </div>
                     {% endif %}
                     
-                    <div class="choices-container">
-                        {% for choice in choices %}
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" name="choices" id="choice_{{ choice.id }}" value="{{ choice.id }}">
-                                <label class="form-check-label" for="choice_{{ choice.id }}">
-                                    {{ choice.text }}
-                                    
-                                    {% if choice.image %}
-                                        <div class="mt-2">
-                                            <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail" style="max-height: 150px;">
-                                        </div>
-                                    {% endif %}
-                                </label>
-                            </div>
-                        {% endfor %}
+                    <div class="star-rating-container text-center my-4">
+                        <div class="fs-5 mb-2">Rate your answer:</div>
+                        <div class="stars">
+                            <input type="radio" id="star5" name="rating" value="5" class="d-none" required>
+                            <label for="star5" class="star-label"><i class="bi bi-star-fill fs-2"></i></label>
+                            
+                            <input type="radio" id="star4" name="rating" value="4" class="d-none">
+                            <label for="star4" class="star-label"><i class="bi bi-star-fill fs-2"></i></label>
+                            
+                            <input type="radio" id="star3" name="rating" value="3" class="d-none">
+                            <label for="star3" class="star-label"><i class="bi bi-star-fill fs-2"></i></label>
+                            
+                            <input type="radio" id="star2" name="rating" value="2" class="d-none">
+                            <label for="star2" class="star-label"><i class="bi bi-star-fill fs-2"></i></label>
+                            
+                            <input type="radio" id="star1" name="rating" value="1" class="d-none">
+                            <label for="star1" class="star-label"><i class="bi bi-star-fill fs-2"></i></label>
+                        </div>
+                        <div class="mt-2 selected-rating fw-bold">No rating selected</div>
                     </div>
                 </div>
                 
@@ -82,6 +85,7 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Timer functionality
         let timeRemaining = {{ time_limit }};
         const timerDisplay = document.getElementById('timer');
         const quizForm = document.getElementById('quiz-form');
@@ -156,8 +160,71 @@
         })
         .catch(error => console.error('Error loading timer state:', error));
         
+        // Star rating functionality
+        const stars = document.querySelectorAll('.star-label');
+        const ratingDisplay = document.querySelector('.selected-rating');
+        
+        stars.forEach(star => {
+            // Add hover effect
+            star.addEventListener('mouseenter', function() {
+                const starValue = this.getAttribute('for').replace('star', '');
+                highlightStars(starValue);
+            });
+            
+            // Remove hover effect if no star is selected
+            star.addEventListener('mouseleave', function() {
+                const selectedStar = document.querySelector('input[name="rating"]:checked');
+                if (selectedStar) {
+                    highlightStars(selectedStar.value);
+                } else {
+                    resetStars();
+                }
+            });
+            
+            // Handle click
+            star.addEventListener('click', function() {
+                const starValue = this.getAttribute('for').replace('star', '');
+                document.getElementById(`star${starValue}`).checked = true;
+                highlightStars(starValue);
+                ratingDisplay.textContent = `${starValue} star${starValue > 1 ? 's' : ''}`;
+            });
+        });
+        
+        function highlightStars(num) {
+            resetStars();
+            for (let i = 0; i < num; i++) {
+                stars[4-i].classList.add('active');
+            }
+        }
+        
+        function resetStars() {
+            stars.forEach(star => star.classList.remove('active'));
+        }
+        
         // Save timer state before unloading the page
         window.addEventListener('beforeunload', saveTimerState);
     });
 </script>
+
+<style>
+    .stars {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+    
+    .star-label {
+        cursor: pointer;
+        padding: 0 5px;
+        color: #ccc;
+        transition: color 0.2s;
+    }
+    
+    .star-label:hover,
+    .star-label:hover ~ .star-label,
+    .star-label.active,
+    .star-label.active ~ .star-label {
+        color: #ffc107;
+    }
+</style>
 {% endblock %}

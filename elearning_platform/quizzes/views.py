@@ -569,8 +569,148 @@ def take_quiz(request, attempt_id):
                     time_taken=time_taken
                 )
         
-        # Handle other question types...
-        # [rest of the answer processing code]
+        elif current_question.question_type == 'multi_select':
+            # Get the selected choices
+            selected_choice_ids = request.POST.getlist('choices')
+            
+            if selected_choice_ids:
+                # Get all correct choices for this question
+                correct_choices = current_question.choices.filter(is_correct=True)
+                selected_choices = Choice.objects.filter(id__in=selected_choice_ids)
+                
+                # Check if correct - must select ALL correct choices and NO incorrect choices
+                correct_choice_ids = set(str(c.id) for c in correct_choices)
+                selected_choice_ids_set = set(selected_choice_ids)
+                
+                # Check if the selected choices exactly match the correct choices
+                if correct_choice_ids == selected_choice_ids_set:
+                    is_correct = True
+                    points_earned = current_question.points
+                
+                # Create the answer
+                answer = QuizAnswer.objects.create(
+                    quiz_attempt=attempt,
+                    question=current_question,
+                    is_correct=is_correct,
+                    points_earned=points_earned,
+                    time_taken=time_taken
+                )
+                
+                # Add the selected choices to the many-to-many relationship
+                answer.selected_choices.add(*selected_choices)
+        
+        elif current_question.question_type in ['short_answer', 'long_answer']:
+            # Get the text answer
+            text_answer = request.POST.get('text_answer', '')
+            
+            # Save the answer - teacher will evaluate later
+            answer = QuizAnswer.objects.create(
+                quiz_attempt=attempt,
+                question=current_question,
+                text_answer=text_answer,
+                is_correct=False,  # Default to false, teacher will grade later
+                points_earned=0,   # Default to 0, teacher will assign points later
+                time_taken=time_taken
+            )
+        
+        elif current_question.question_type == 'star_rating':
+            # Get the rating
+            rating = request.POST.get('rating')
+            
+            if rating:
+                # Store the rating in the text_answer field
+                answer = QuizAnswer.objects.create(
+                    quiz_attempt=attempt,
+                    question=current_question,
+                    text_answer=rating,
+                    is_correct=True,  # Star ratings are always "correct"
+                    points_earned=current_question.points,  # Give full points for completing
+                    time_taken=time_taken
+                )
+        
+        elif current_question.question_type == 'voice_record':
+            # Get the voice data and duration
+            voice_data = request.POST.get('voice_data')
+            duration = request.POST.get('duration', 0)
+            
+            if voice_data and voice_data.startswith('data:audio'):
+                # Create a temporary file to store the voice recording
+                import base64
+                from django.core.files.base import ContentFile
+                
+                # Remove the data URI prefix to get the base64 content
+                format, base64_data = voice_data.split(';base64,')
+                
+                # Decode the base64 data
+                decoded_data = base64.b64decode(base64_data)
+                
+                # Create a voice recording
+                voice_recording = VoiceRecording.objects.create(
+                    question=current_question,
+                    student=request.user,
+                    duration=int(duration)
+                )
+                
+                # Save the audio file
+                file_name = f"voice_recording_{request.user.id}_{current_question.id}.wav"
+                voice_recording.recording.save(file_name, ContentFile(decoded_data), save=True)
+                
+                # Create the answer and link it to the voice recording
+                answer = QuizAnswer.objects.create(
+                    quiz_attempt=attempt,
+                    question=current_question,
+                    voice_answer=voice_recording,
+                    is_correct=False,  # Will be graded later
+                    points_earned=0,   # Will be assigned by teacher
+                    time_taken=time_taken
+                )
+        
+        elif current_question.question_type == 'file_upload':
+            # Handle file upload questions
+            uploaded_file = request.FILES.get('file')
+            
+            if uploaded_file:
+                # Create a file answer record
+                file_answer = FileAnswer.objects.create(
+                    question=current_question,
+                    student=request.user,
+                    file=uploaded_file,
+                    file_type=uploaded_file.content_type
+                )
+                
+                # Create the answer and link it to the file
+                answer = QuizAnswer.objects.create(
+                    quiz_attempt=attempt,
+                    question=current_question,
+                    file_answer=file_answer,
+                    is_correct=False,  # Default to false, teacher will grade later
+                    points_earned=0,   # Default to 0, teacher will assign points later
+                    time_taken=time_taken
+                )
+        
+        elif current_question.question_type == 'true_false':
+            # Handle true/false questions similar to multiple choice
+            selected_choice_id = request.POST.get('choice')
+            
+            if selected_choice_id:
+                selected_choice = Choice.objects.get(id=selected_choice_id)
+                
+                # Check if correct
+                if selected_choice.is_correct:
+                    is_correct = True
+                    points_earned = current_question.points
+                
+                # Create the answer
+                answer = QuizAnswer.objects.create(
+                    quiz_attempt=attempt,
+                    question=current_question,
+                    selected_choice=selected_choice,
+                    is_correct=is_correct,
+                    points_earned=points_earned,
+                    time_taken=time_taken
+                )
+        
+        # Add handling for other question types as needed
         
         # Redirect to the next question
         next_question = current_question_num + 1
@@ -579,7 +719,14 @@ def take_quiz(request, attempt_id):
             return redirect(f"{reverse('take_quiz', args=[attempt.id])}?question={next_question}")
         else:
             # Complete the quiz if this was the last question
-            return redirect(f"{reverse('take_quiz', args=[attempt.id])}?question={next_question}")
+            attempt.end_time = timezone.now()
+            attempt.completed = True
+            attempt.status = 'completed'
+            attempt.score = attempt.calculate_score()
+            attempt.result = attempt.determine_result()
+            attempt.save()
+            
+            return redirect('quiz_results', attempt_id=attempt.id)
     
     # Prepare the context for the template
     choices = None
@@ -628,7 +775,20 @@ def take_quiz(request, attempt_id):
                 
                 return redirect('quiz_results', attempt_id=attempt.id)
     
-    return render(request, 'quizzes/take_quiz.html', {
+    # Prepare context for voice recording questions
+    existing_recording = None
+    if current_question.question_type == 'voice_record':
+        # Check if there's a previous recording (for previewing)
+        existing_voice_recording = VoiceRecording.objects.filter(
+            question=current_question,
+            student=request.user
+        ).first()
+        
+        if existing_voice_recording:
+            existing_recording = existing_voice_recording.recording
+    
+    # Choose the appropriate template based on question type
+    context = {
         'attempt': attempt,
         'quiz': quiz,
         'question': current_question,
@@ -636,8 +796,28 @@ def take_quiz(request, attempt_id):
         'total_questions': questions.count(),
         'progress_percentage': progress_percentage,
         'choices': choices,
-        'remaining_time': remaining_time
-    })
+        'time_limit': remaining_time,  # Use time_limit instead of remaining_time
+        'existing_recording': existing_recording
+    }
+    
+    # Select the template based on question type
+    if current_question.question_type == 'multiple_choice' or current_question.question_type == 'true_false':
+        return render(request, 'quizzes/take_quiz.html', context)
+    elif current_question.question_type == 'multi_select':
+        return render(request, 'quizzes/take_quiz_multi_select.html', context)
+    elif current_question.question_type == 'short_answer':
+        return render(request, 'quizzes/take_quiz_short_answer.html', context)
+    elif current_question.question_type == 'long_answer':
+        return render(request, 'quizzes/take_quiz_long_answer.html', context)
+    elif current_question.question_type == 'star_rating':
+        return render(request, 'quizzes/take_quiz_star_rating.html', context)
+    elif current_question.question_type == 'file_upload':
+        return render(request, 'quizzes/take_quiz_file.html', context)
+    elif current_question.question_type == 'voice_record':
+        return render(request, 'quizzes/take_quiz_voice.html', context)
+    else:
+        # For any other question type, use the generic template
+        return render(request, 'quizzes/take_quiz_generic.html', context)
 
 @login_required
 def quiz_results(request, attempt_id):
@@ -936,3 +1116,93 @@ def get_timer(request, attempt_id):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+@user_passes_test(is_teacher_or_admin)
+def grade_submissions(request, quiz_id):
+    """View for teachers to grade manual submission questions (text, file, voice) in a quiz"""
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    
+    # Check if teacher has access to this quiz
+    if not (request.user.is_staff or request.user.is_superuser):
+        # Get student IDs assigned to this teacher
+        student_ids = StudentProfile.objects.filter(
+            assigned_teacher=request.user
+        ).values_list('user_id', flat=True)
+        
+        # Check if there are any attempts by these students for this quiz
+        if not QuizAttempt.objects.filter(quiz=quiz, student_id__in=student_ids).exists():
+            messages.error(request, "You don't have permission to grade submissions for this quiz.")
+            return redirect('teacher_dashboard')
+    
+    # Get all completed attempts for this quiz
+    attempts = QuizAttempt.objects.filter(
+        quiz=quiz,
+        completed=True
+    ).select_related('student')
+    
+    # If the user is a teacher (not admin), filter by assigned students
+    if not (request.user.is_staff or request.user.is_superuser):
+        attempts = attempts.filter(student_id__in=student_ids)
+    
+    # Get all answers that need manual grading:
+    # 1. Text answers (short_answer, long_answer)
+    # 2. File uploads (file_upload)
+    # 3. Voice recordings (voice_record)
+    # 4. Star ratings (star_rating)
+    answers_needing_grading = QuizAnswer.objects.filter(
+        quiz_attempt__in=attempts
+    ).filter(
+        # Either has a text, file, or voice answer
+        Q(text_answer__isnull=False) | 
+        Q(file_answer__isnull=False) | 
+        Q(voice_answer__isnull=False) |
+        # Or it's a question type that needs manual grading
+        Q(question__question_type__in=['short_answer', 'long_answer', 'file_upload', 'voice_record', 'star_rating'])
+    ).select_related('quiz_attempt', 'question', 'quiz_attempt__student')
+    
+    # Process grading form submission
+    if request.method == 'POST':
+        answer_id = request.POST.get('answer_id')
+        is_correct = request.POST.get('is_correct') == 'true'
+        points = int(request.POST.get('points', 0))
+        
+        if answer_id:
+            answer = QuizAnswer.objects.get(id=answer_id)
+            answer.is_correct = is_correct
+            answer.points_earned = points if is_correct else 0
+            answer.save()
+            
+            # Recalculate attempt score
+            attempt = answer.quiz_attempt
+            attempt.score = attempt.calculate_score()
+            attempt.save()
+            
+            messages.success(request, "Answer graded successfully.")
+            
+            # Check if there are more answers to grade
+            if answers_needing_grading.filter(~Q(id=answer_id)).exists():
+                return redirect('grade_submissions', quiz_id=quiz_id)
+            else:
+                messages.success(request, "All submissions for this quiz have been graded!")
+                return redirect('teacher_dashboard')
+    
+    # Group answers by attempt and student for the template
+    grouped_answers = {}
+    for answer in answers_needing_grading:
+        attempt = answer.quiz_attempt
+        student = attempt.student
+        
+        if student.id not in grouped_answers:
+            grouped_answers[student.id] = {
+                'student': student,
+                'attempt': attempt,
+                'answers': []
+            }
+        
+        grouped_answers[student.id]['answers'].append(answer)
+    
+    return render(request, 'quizzes/grade_quiz_submissions.html', {
+        'quiz': quiz,
+        'grouped_answers': grouped_answers.values()
+    })

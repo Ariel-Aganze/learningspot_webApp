@@ -61,6 +61,19 @@ class Quiz(models.Model):
             ).aggregate(total=Sum('points'))['total'] or 0
 
         return max(direct_sum, through_sum)
+    
+    def get_question_count(self):
+        """Count the total number of questions in the quiz"""
+    # First count direct questions
+        direct_count = self.questions.count()
+    
+    # Then count questions through QuizQuestion relationship if it exists
+        through_count = 0
+        if hasattr(self, 'quiz_questions'):
+            through_count = self.quiz_questions.count()
+    
+    # Return the higher count (they might overlap)
+        return max(direct_count, through_count)
 
 class Question(models.Model):
     """Model representing a question in a quiz"""

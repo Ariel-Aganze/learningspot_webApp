@@ -22,7 +22,7 @@
         </div>
         
         <div class="card-body">
-            <form method="post" id="quiz-form">
+            <form method="post" id="quiz-form" enctype="multipart/form-data">
                 {% csrf_token %}
                 
                 <div class="question-container mb-4">
@@ -74,17 +74,17 @@
                                 <audio id="audioPlayback" controls></audio>
                             </div>
                             
+                            <!-- Hidden fields to store recording data -->
                             <input type="hidden" name="voice_data" id="voiceData">
-                            <input type="hidden" name="duration" id="recordingDuration">
+                            <input type="hidden" name="duration" id="recordingDuration" value="0">
                         </div>
                     </div>
                 </div>
                 
                 <div class="d-flex justify-content-between">
-                    {# No Previous button for one-way navigation #}
                     <div></div>
                     
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="submitButton" disabled>
                         {% if question_number == total_questions %}
                             Finish Quiz
                         {% else %}
@@ -105,15 +105,17 @@
         const timerDisplay = document.getElementById('timer');
         const quizForm = document.getElementById('quiz-form');
         
-        // Question timer functionality
+        // Format time as MM:SS
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
         
+        // Update timer display
         function updateTimer() {
             if (timeRemaining <= 0) {
+                // Time's up - submit the form
                 clearInterval(timerInterval);
                 timerDisplay.textContent = "0:00";
                 quizForm.submit();
@@ -123,15 +125,18 @@
             timeRemaining--;
             timerDisplay.textContent = formatTime(timeRemaining);
             
+            // Change color when time is running low
             if (timeRemaining <= 10) {
                 timerDisplay.classList.add('text-danger');
             }
             
+            // Save timer state periodically
             if (timeRemaining % 5 === 0) {
                 saveTimerState();
             }
         }
         
+        // Save timer state via AJAX
         function saveTimerState() {
             fetch('{% url "update_timer" attempt.id %}', {
                 method: 'POST',
@@ -147,9 +152,11 @@
             }).catch(error => console.error('Error saving timer state:', error));
         }
         
+        // Initialize timer
         timerDisplay.textContent = formatTime(timeRemaining);
         const timerInterval = setInterval(updateTimer, 1000);
         
+        // Load saved timer state if available
         fetch(`{% url "get_timer" attempt.id %}?question_id={{ question.id }}`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -168,6 +175,7 @@
         })
         .catch(error => console.error('Error loading timer state:', error));
         
+        // Save timer state before unloading the page
         window.addEventListener('beforeunload', saveTimerState);
         
         // Voice recording functionality
@@ -179,6 +187,7 @@
         const audioPlayback = document.getElementById('audioPlayback');
         const voiceDataInput = document.getElementById('voiceData');
         const durationInput = document.getElementById('recordingDuration');
+        const submitButton = document.getElementById('submitButton');
         
         let mediaRecorder;
         let audioChunks = [];
@@ -235,6 +244,9 @@
                         reader.onloadend = function() {
                             const base64data = reader.result;
                             voiceDataInput.value = base64data;
+                            
+                            // Enable submit button once we have recording data
+                            submitButton.disabled = false;
                         };
                         
                         // Stop all tracks in the stream
@@ -264,8 +276,9 @@
                 mediaRecorder.stop();
                 clearInterval(recordingTimer);
                 
-                recordingStatus.textContent = 'Recording stopped';
+                recordingStatus.textContent = 'Recording completed! Click Next to continue.';
                 recordingStatus.classList.remove('text-danger');
+                recordingStatus.classList.add('text-success');
                 
                 startButton.disabled = false;
                 stopButton.disabled = true;
@@ -283,6 +296,11 @@
         
         // Check recording time limit every second
         setInterval(checkRecordingTimeLimit, 1000);
+        
+        // If there's an existing recording, enable the submit button
+        {% if existing_recording %}
+            submitButton.disabled = false;
+        {% endif %}
     });
 </script>
 {% endblock %}

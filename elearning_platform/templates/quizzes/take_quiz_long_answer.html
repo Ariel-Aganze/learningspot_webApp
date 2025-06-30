@@ -27,7 +27,6 @@
                 
                 <div class="question-container mb-4">
                     <h4 class="mb-3">{{ question.text }}</h4>
-                    <p class="text-info mb-3"><i class="bi bi-info-circle"></i> Select all correct answers (multiple selections allowed)</p>
                     
                     {% if question.image %}
                         <div class="text-center mb-3">
@@ -44,21 +43,10 @@
                         </div>
                     {% endif %}
                     
-                    <div class="choices-container">
-                        {% for choice in choices %}
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" name="choices" id="choice_{{ choice.id }}" value="{{ choice.id }}">
-                                <label class="form-check-label" for="choice_{{ choice.id }}">
-                                    {{ choice.text }}
-                                    
-                                    {% if choice.image %}
-                                        <div class="mt-2">
-                                            <img src="{{ choice.image.url }}" alt="Choice Image" class="img-thumbnail" style="max-height: 150px;">
-                                        </div>
-                                    {% endif %}
-                                </label>
-                            </div>
-                        {% endfor %}
+                    <div class="form-group mb-4">
+                        <label for="text_answer" class="form-label">Your Answer:</label>
+                        <textarea name="text_answer" id="text_answer" class="form-control" rows="6" required></textarea>
+                        <div class="form-text">Provide a detailed answer. You can write multiple paragraphs.</div>
                     </div>
                 </div>
                 

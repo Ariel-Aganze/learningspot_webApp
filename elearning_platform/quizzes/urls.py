@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:quiz_id>/detail/', views.quiz_detail, name='quiz_detail'),
     path('<int:quiz_id>/delete/', views.delete_quiz, name='delete_quiz'),
     path('<int:quiz_id>/analytics/', views.quiz_analytics, name='quiz_analytics'),
+    path('<int:quiz_id>/grade-submissions/', views.grade_submissions, name='grade_submissions'),
     
     # Student Quiz Taking
     path('student/list/', views.student_quiz_list, name='student_quiz_list'),
