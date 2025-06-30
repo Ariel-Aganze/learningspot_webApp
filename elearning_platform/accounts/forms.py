@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 from courses.models import Course
-from .models import CoursePeriod, Organization, User, PaymentProof, StudentProfile
+from .models import CoursePeriod, Organization, TeacherCourse, User, PaymentProof, StudentProfile
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -66,24 +66,39 @@ class TeacherAssignmentForm(forms.ModelForm):
 
 class TeacherCreateForm(UserCreationForm):
     email = forms.EmailField(required=True)
+    courses = forms.ModelMultipleChoiceField(
+        queryset=Course.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
+        help_text="Select courses this teacher can teach. Leave empty to allow teaching all courses."
+    )
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'phone_number']
+        fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'phone_number', 'courses']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
-            self.fields[field_name].widget.attrs.update({'class': 'form-control'})
+            if field_name != 'courses':  # Skip the courses field to avoid overriding its widget
+                self.fields[field_name].widget.attrs.update({'class': 'form-control'})
     
     def save(self, commit=True):
         user = super().save(commit=False)
         user.user_type = 'teacher'
+        
+        # Get courses but don't save them to the user yet
+        courses = self.cleaned_data.get('courses', [])
+        
         if commit:
             user.save()
+            
+            # Now create TeacherCourse relationships if specific courses were selected
+            if courses:
+                for course in courses:
+                    TeacherCourse.objects.create(teacher=user, course=course)
+                    
         return user
-
-# Add to accounts/forms.py
 
 class StudentProfileUpdateForm(forms.ModelForm):
     """Form for students to update their basic profile information"""

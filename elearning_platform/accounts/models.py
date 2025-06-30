@@ -227,3 +227,18 @@ class CourseApproval(models.Model):
     class Meta:
         verbose_name = "Course Approval"
         verbose_name_plural = "Course Approvals"
+
+class TeacherCourse(models.Model):
+    """Model to track which courses a teacher can teach"""
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teaching_courses',
+                              limit_choices_to={'user_type': 'teacher'})
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='teachers')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['teacher', 'course']
+        verbose_name = "Teacher Course"
+        verbose_name_plural = "Teacher Courses"
+        
+    def __str__(self):
+        return f"{self.teacher.get_full_name()} - {self.course.title}"

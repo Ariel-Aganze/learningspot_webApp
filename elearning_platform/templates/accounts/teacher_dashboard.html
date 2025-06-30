@@ -465,8 +465,9 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Quiz Management</h5>
                 <div>
-                    <a href="{% url 'quiz_create' %}" class="btn btn-sm btn-success">Create Quiz</a>
-                    <a href="{% url 'question_create' %}" class="btn btn-sm btn-primary">Add Question</a>
+                    <a href="{% url 'create_quiz' %}" class="btn btn-sm btn-success">Create Quiz</a>
+
+                    
                 </div>
             </div>
             <div class="card-body">
@@ -479,7 +480,6 @@
                                     <small class="text-muted">{{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions</small>
                                 </div>
                                 <div>
-                                    <a href="{% url 'quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-secondary">Manage Questions</a>
                                     <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
                                 </div>
                             </div>
@@ -491,7 +491,8 @@
                 {% else %}
                     <div class="text-center py-4">
                         <p>You haven't created any quizzes yet.</p>
-                        <a href="{% url 'quiz_create' %}" class="btn btn-primary">Create Your First Quiz</a>
+                        <a href="{% url 'create_quiz' %}" class="btn btn-sm btn-success">Create Quiz</a>
+
                     </div>
                 {% endif %}
             </div>

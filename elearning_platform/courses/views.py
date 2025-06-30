@@ -39,6 +39,21 @@ def is_active_user(user):
     """Basic check to ensure user is authenticated and active"""
     return user.is_authenticated and user.is_active
 
+# NEW FUNCTION: Helper to determine which courses a teacher can access
+def get_teacher_courses(teacher):
+    """Helper function to get courses a teacher can teach"""
+    # Import here to avoid circular imports
+    from accounts.models import TeacherCourse
+    
+    # First check if teacher has specific course assignments
+    teacher_courses = Course.objects.filter(teachers__teacher=teacher)
+    
+    # If no specific assignments, teacher can teach all courses
+    if not teacher_courses.exists():
+        return Course.objects.all()
+    
+    return teacher_courses
+
 def course_list(request):
     courses = Course.objects.filter(is_active=True)
     return render(request, 'courses/course_list.html', {'courses': courses})
@@ -367,16 +382,18 @@ def student_course_dashboard(request, slug):
 def teacher_course_management(request, slug):
     course = get_object_or_404(Course, slug=slug)
     
+    # UPDATED: Check if teacher has access to this course using the helper function
+    teacher_courses = get_teacher_courses(request.user)
+    if course not in teacher_courses:
+        messages.error(request, "You don't have permission to manage this course.")
+        return redirect('teacher_dashboard')
+    
     # Verify that this teacher has students assigned to this course
     student_profiles = StudentProfile.objects.filter(
         assigned_teacher=request.user,
         user__payment_proofs__course=course,
         user__payment_proofs__status='approved'
     ).distinct()
-    
-    if not student_profiles.exists():
-        messages.error(request, "You don't have any students assigned to this course.")
-        return redirect('teacher_dashboard')
     
     # Get course materials
     materials = course.materials.all()
@@ -413,20 +430,9 @@ def material_list(request, course_id=None):
             # Admins can see all materials
             materials = CourseMaterial.objects.all().order_by('course__title', 'order', 'title')
         else:
-            # Teachers can see materials for courses with their assigned students
-            student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-            student_ids = student_profiles.values_list('user_id', flat=True)
-            
-            # Get courses that have students assigned to this teacher
-            course_ids = set()
-            for student_id in student_ids:
-                student_payments = PaymentProof.objects.filter(
-                    user_id=student_id, 
-                    status='approved'
-                )
-                course_ids.update(student_payments.values_list('course_id', flat=True))
-            
-            materials = CourseMaterial.objects.filter(course_id__in=course_ids).order_by('course__title', 'order', 'title')
+            # UPDATED: Teachers can see materials for courses they can teach
+            teacher_courses = get_teacher_courses(request.user)
+            materials = CourseMaterial.objects.filter(course__in=teacher_courses).order_by('course__title', 'order', 'title')
         
         title = "All Course Materials"
         course = None
@@ -464,21 +470,10 @@ def material_create(request, course_id=None):
     else:
         form = CourseMaterialForm(initial=initial_data)
     
-    # Filter course choices for teachers
+    # UPDATED: Filter course choices for teachers based on which courses they can teach
     if not (request.user.is_staff or request.user.is_superuser):
-        # Get courses where the teacher has assigned students
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        course_ids = set()
-        for student_id in student_ids:
-            student_payments = PaymentProof.objects.filter(
-                user_id=student_id, 
-                status='approved'
-            )
-            course_ids.update(student_payments.values_list('course_id', flat=True))
-        
-        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+        teacher_courses = get_teacher_courses(request.user)
+        form.fields['course'].queryset = teacher_courses
     
     context = {
         'form': form,
@@ -494,18 +489,10 @@ def material_update(request, material_id):
     """View for updating an existing course material"""
     material = get_object_or_404(CourseMaterial, id=material_id)
     
-    # For teachers, check if they have access to this course
+    # UPDATED: For teachers, check if they have access to this course
     if not (request.user.is_staff or request.user.is_superuser):
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        student_has_course = PaymentProof.objects.filter(
-            user_id__in=student_ids,
-            course=material.course,
-            status='approved'
-        ).exists()
-        
-        if not student_has_course:
+        teacher_courses = get_teacher_courses(request.user)
+        if material.course not in teacher_courses:
             messages.error(request, "You don't have permission to edit this material.")
             return redirect('teacher_dashboard')
     
@@ -518,20 +505,10 @@ def material_update(request, material_id):
     else:
         form = CourseMaterialForm(instance=material)
     
-    # Filter course choices for teachers
+    # UPDATED: Filter course choices for teachers based on which courses they can teach
     if not (request.user.is_staff or request.user.is_superuser):
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        course_ids = set()
-        for student_id in student_ids:
-            student_payments = PaymentProof.objects.filter(
-                user_id=student_id, 
-                status='approved'
-            )
-            course_ids.update(student_payments.values_list('course_id', flat=True))
-        
-        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+        teacher_courses = get_teacher_courses(request.user)
+        form.fields['course'].queryset = teacher_courses
     
     context = {
         'form': form,
@@ -548,18 +525,10 @@ def material_delete(request, material_id):
     material = get_object_or_404(CourseMaterial, id=material_id)
     course = material.course
     
-    # For teachers, check if they have access to this course
+    # UPDATED: For teachers, check if they have access to this course
     if not (request.user.is_staff or request.user.is_superuser):
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        student_has_course = PaymentProof.objects.filter(
-            user_id__in=student_ids,
-            course=course,
-            status='approved'
-        ).exists()
-        
-        if not student_has_course:
+        teacher_courses = get_teacher_courses(request.user)
+        if course not in teacher_courses:
             messages.error(request, "You don't have permission to delete this material.")
             return redirect('teacher_dashboard')
     
@@ -582,28 +551,16 @@ def material_delete(request, material_id):
 
 # Teacher views for assignments
 @login_required
-@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
+@user_passes_test(is_teacher_or_admin)
 def assignment_list(request):
     """View for teachers and admins to see all assignments they can manage"""
     # For admins, show all assignments
     if request.user.is_staff or request.user.is_superuser:
         assignments = Assignment.objects.all().order_by('-created_at')
     else:
-        # For teachers, show only assignments for their courses
-        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = teacher_students.values_list('user_id', flat=True)
-        
-        # Get courses for these students
-        course_ids = set()
-        for student_id in student_ids:
-            student_payments = PaymentProof.objects.filter(
-                user_id=student_id, 
-                status='approved'
-            )
-            course_ids.update(student_payments.values_list('course_id', flat=True))
-        
-        # Get assignments for these courses
-        assignments = Assignment.objects.filter(course_id__in=course_ids).order_by('-created_at')
+        # UPDATED: For teachers, show only assignments for courses they can teach
+        teacher_courses = get_teacher_courses(request.user)
+        assignments = Assignment.objects.filter(course__in=teacher_courses).order_by('-created_at')
     
     # Get submission counts for each assignment
     for assignment in assignments:
@@ -617,7 +574,7 @@ def assignment_list(request):
     return render(request, 'courses/assignment_list.html', context)
 
 @login_required
-@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
+@user_passes_test(is_teacher_or_admin)
 def assignment_create(request):
     """View for teachers and admins to create a new assignment"""
     if request.method == 'POST':
@@ -629,46 +586,26 @@ def assignment_create(request):
     else:
         form = AssignmentForm()
     
-    # For teachers, limit course choices to courses they teach
+    # UPDATED: For teachers, limit course choices to courses they can teach
     if not (request.user.is_staff or request.user.is_superuser):
-        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = teacher_students.values_list('user_id', flat=True)
-        
-        course_ids = set()
-        for student_id in student_ids:
-            student_payments = PaymentProof.objects.filter(
-                user_id=student_id, 
-                status='approved'
-            )
-            course_ids.update(student_payments.values_list('course_id', flat=True))
-        
-        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+        teacher_courses = get_teacher_courses(request.user)
+        form.fields['course'].queryset = teacher_courses
     
     return render(request, 'courses/assignment_form.html', {
         'form': form,
         'title': 'Create Assignment'
     })
 
-
 @login_required
-@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
+@user_passes_test(is_teacher_or_admin)
 def assignment_update(request, assignment_id):
     """View for teachers and admins to update an existing assignment"""
     assignment = get_object_or_404(Assignment, id=assignment_id)
     
-    # Check permissions for teachers (admins can access any assignment)
+    # UPDATED: Check permissions for teachers (admins can access any assignment)
     if not (request.user.is_staff or request.user.is_superuser):
-        # For teachers, check if they have any students enrolled in this course
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        student_has_course = PaymentProof.objects.filter(
-            user_id__in=student_ids,
-            course=assignment.course,
-            status='approved'
-        ).exists()
-        
-        if not student_has_course:
+        teacher_courses = get_teacher_courses(request.user)
+        if assignment.course not in teacher_courses:
             messages.error(request, "You don't have permission to edit this assignment.")
             return redirect('teacher_dashboard')
     
@@ -677,29 +614,14 @@ def assignment_update(request, assignment_id):
         if form.is_valid():
             form.save()
             messages.success(request, "Assignment updated successfully!")
-            
-            # Redirect based on user type
-            if request.user.is_staff or request.user.is_superuser:
-                return redirect('assignment_list')
-            else:
-                return redirect('assignment_list')
+            return redirect('assignment_list')
     else:
         form = AssignmentForm(instance=assignment)
     
-    # For teachers, limit course choices to courses they teach
+    # UPDATED: For teachers, limit course choices to courses they can teach
     if not (request.user.is_staff or request.user.is_superuser):
-        teacher_students = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = teacher_students.values_list('user_id', flat=True)
-        
-        course_ids = set()
-        for student_id in student_ids:
-            student_payments = PaymentProof.objects.filter(
-                user_id=student_id, 
-                status='approved'
-            )
-            course_ids.update(student_payments.values_list('course_id', flat=True))
-        
-        form.fields['course'].queryset = Course.objects.filter(id__in=course_ids)
+        teacher_courses = get_teacher_courses(request.user)
+        form.fields['course'].queryset = teacher_courses
     
     return render(request, 'courses/assignment_form.html', {
         'form': form,
@@ -708,24 +630,15 @@ def assignment_update(request, assignment_id):
     })
 
 @login_required
-@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
+@user_passes_test(is_teacher_or_admin)
 def assignment_submissions(request, assignment_id):
     """View for teachers and admins to see all submissions for an assignment"""
     assignment = get_object_or_404(Assignment, id=assignment_id)
     
-    # Check permissions for teachers (admins can access any assignment)
+    # UPDATED: Check permissions for teachers (admins can access any assignment)
     if not (request.user.is_staff or request.user.is_superuser):
-        # For teachers, check if they have any students enrolled in this course
-        student_profiles = StudentProfile.objects.filter(assigned_teacher=request.user)
-        student_ids = student_profiles.values_list('user_id', flat=True)
-        
-        student_has_course = PaymentProof.objects.filter(
-            user_id__in=student_ids,
-            course=assignment.course,
-            status='approved'
-        ).exists()
-        
-        if not student_has_course:
+        teacher_courses = get_teacher_courses(request.user)
+        if assignment.course not in teacher_courses:
             messages.error(request, "You don't have permission to view submissions for this assignment.")
             return redirect('teacher_dashboard')
     
@@ -743,7 +656,7 @@ def assignment_submissions(request, assignment_id):
     })
 
 @login_required
-@user_passes_test(is_teacher_or_admin)  # Changed from is_teacher to is_teacher_or_admin
+@user_passes_test(is_teacher_or_admin)
 def grade_submission(request, submission_id):
     """View for teachers and admins to grade a specific submission"""
     submission = get_object_or_404(AssignmentSubmission, id=submission_id)
@@ -898,4 +811,3 @@ def mark_content_viewed(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-

@@ -454,8 +454,16 @@ def create_teacher(request):
     if request.method == 'POST':
         form = TeacherCreateForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Teacher account created successfully')
+            teacher = form.save()
+            
+            # Check if any courses were selected
+            courses = form.cleaned_data.get('courses', [])
+            if courses:
+                courses_str = ", ".join([course.title for course in courses])
+                messages.success(request, f'Teacher account created successfully. Assigned to courses: {courses_str}')
+            else:
+                messages.success(request, 'Teacher account created successfully. This teacher can teach all courses.')
+                
             return redirect('admin_dashboard')
     else:
         form = TeacherCreateForm()
@@ -520,8 +528,12 @@ def calculate_quiz_stats(student_ids, courses):
             passed_attempts = sum(1 for attempt in attempts if attempt.score >= attempt.quiz.passing_score)
             quiz_stats['pass_rate'] = round((passed_attempts / attempts.count() * 100), 1) if attempts.count() > 0 else 0
     
-    # Calculate question stats
-    questions = Question.objects.filter(course__in=courses)
+    # Get all quizzes for these courses first
+    course_quizzes = Quiz.objects.filter(course__in=courses)
+    
+    # Then get questions for these quizzes
+    questions = Question.objects.filter(quiz__in=course_quizzes)
+    
     if questions.exists():
         question_stats['total'] = questions.count()
         question_stats['multiple_choice'] = questions.filter(
