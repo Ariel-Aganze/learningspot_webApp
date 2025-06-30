@@ -2,7 +2,6 @@
 
 {% load custom_filters %}
 
-
 {% block title %}Teacher Dashboard - E-Learning Platform{% endblock %}
 
 {% block extra_css %}
@@ -33,6 +32,52 @@
     .section-paginator span {
         margin: 0 5px;
         font-size: 0.85rem;
+    }
+    
+    .badge.bg-primary {
+        background-color: #0d6efd;
+    }
+    
+    .badge.bg-success {
+        background-color: #198754;
+    }
+    
+    .badge.bg-danger {
+        background-color: #dc3545;
+    }
+    
+    .badge.bg-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .badge.bg-info {
+        background-color: #0dcaf0;
+        color: #212529;
+    }
+    
+    .badge.bg-secondary {
+        background-color: #6c757d;
+    }
+    
+    .proficiency-level-indicator {
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .level-beginner {
+        background-color: #17a2b8;
+    }
+    
+    .level-intermediate {
+        background-color: #0d6efd;
+    }
+    
+    .level-advanced {
+        background-color: #198754;
     }
 </style>
 {% endblock %}
@@ -139,7 +184,7 @@
                             {% endif %}
                         </span></span>
                     {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="materials-next">»</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="materials-next">»</button>
                     </div>
                     {% endif %}
                     
@@ -246,7 +291,7 @@
                             {% endif %}
                         </span></span>
                     {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="assignments-next">»</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="assignments-next">»</button>
                     </div>
                     {% endif %}
                     
@@ -267,10 +312,9 @@
     <!-- Teacher Profile -->
     <div class="col-md-4 mb-4">
         <div class="card shadow h-100">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">My Profile</h5>
-                        <a href="{% url 'teacher_update_profile' %}" class="btn btn-sm btn-outline-primary">Edit Profile</a>
-
+                <a href="{% url 'teacher_update_profile' %}" class="btn btn-sm btn-outline-primary">Edit Profile</a>
             </div>
             <div class="card-body">
                 <p><strong>Username:</strong> {{ request.user.username }}</p>
@@ -284,87 +328,94 @@
     </div>
     
     <!-- Assigned Students -->
-   <!-- Assigned Students Section - Updated with Student ID field -->
-<div class="col-md-8 mb-4">
-    <div class="card shadow h-100">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">My Students</h5>
-            <a href="{% url 'create_event' %}" class="btn btn-sm btn-primary">Create New Event</a>
-        </div>
-        <div class="card-body">
-            {% if assigned_students %}
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Student</th>
-                                <th>Email</th>
-                                <th>Level</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student_profile in assigned_students %}
-                                <tr class="student-row {% if forloop.counter > 3 %}d-none{% endif %}">
-                                    <td>
-                                        {% if student_profile.user.student_id %}
-                                            <span class="badge bg-primary">{{ student_profile.user.student_id }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">N/A</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ student_profile.user.get_full_name|default:student_profile.user.username }}</td>
-                                    <td>{{ student_profile.user.email }}</td>
-                                    <td>
-                                        {% if student_profile.proficiency_level %}
-                                            <span class="badge bg-primary">{{ student_profile.proficiency_level|title }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Not determined</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if student_profile.user.is_active %}
-                                            <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'send_timesheet' student_profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
-                                    </td>
+    <div class="col-md-8 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">My Students</h5>
+                <a href="{% url 'create_event' %}" class="btn btn-sm btn-primary">Create New Event</a>
+            </div>
+            <div class="card-body">
+                {% if assigned_students %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Student</th>
+                                    <th>Email</th>
+                                    <th>Level</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                {% if assigned_students|length > 3 %}
-                <div class="section-paginator" id="students-paginator">
-                    <button class="btn btn-sm btn-outline-secondary" id="students-prev" disabled>&laquo;</button>
-                    {% with total=assigned_students|length %}
-                    <span><span id="students-current-page">1</span> / 
-                    <span id="students-total-pages">
-                        {% if total|divisibleby:3 %}
-                            {{ total|dividedby:3 }}
-                        {% else %}
-                            {{ total|add:2|dividedby:3 }}
-                        {% endif %}
-                    </span></span>
-                {% endwith %}
-                                        <button class="btn btn-sm btn-outline-secondary" id="students-next">»</button>
-                </div>
+                            </thead>
+                            <tbody>
+                                {% for student_profile in assigned_students %}
+                                    <tr class="student-row {% if forloop.counter > 3 %}d-none{% endif %}">
+                                        <td>
+                                            {% if student_profile.user.student_id %}
+                                                <span class="badge bg-primary">{{ student_profile.user.student_id }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ student_profile.user.get_full_name|default:student_profile.user.username }}</td>
+                                        <td>{{ student_profile.user.email }}</td>
+                                        <td>
+                                            {% if student_profile.proficiency_level %}
+                                                <div>
+                                                    <span class="proficiency-level-indicator level-{{ student_profile.proficiency_level }}"></span>
+                                                    <span class="badge bg-{% if student_profile.proficiency_level == 'beginner' %}info{% elif student_profile.proficiency_level == 'intermediate' %}primary{% else %}success{% endif %}">
+                                                        {{ student_profile.proficiency_level|title }}
+                                                    </span>
+                                                </div>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Not determined</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if student_profile.user.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'send_timesheet' student_profile.user.id %}" class="btn btn-sm btn-outline-primary">Send Timesheet</a>
+                                                <a href="{% url 'quiz_list' %}" class="btn btn-sm btn-outline-info">View Quizzes</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if assigned_students|length > 3 %}
+                    <div class="section-paginator" id="students-paginator">
+                        <button class="btn btn-sm btn-outline-secondary" id="students-prev" disabled>&laquo;</button>
+                        {% with total=assigned_students|length %}
+                        <span><span id="students-current-page">1</span> / 
+                        <span id="students-total-pages">
+                            {% if total|divisibleby:3 %}
+                                {{ total|dividedby:3 }}
+                            {% else %}
+                                {{ total|add:2|dividedby:3 }}
+                            {% endif %}
+                        </span></span>
+                    {% endwith %}
+                        <button class="btn btn-sm btn-outline-secondary" id="students-next">»</button>
+                    </div>
+                    {% endif %}
+                    
+                {% else %}
+                    <div class="text-center py-4">
+                        <p>You don't have any assigned students yet.</p>
+                    </div>
                 {% endif %}
-                
-            {% else %}
-                <div class="text-center py-4">
-                    <p>You don't have any assigned students yet.</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
     </div>
-</div>
 </div>
 
 <!-- Confirmed Timesheets Section -->
@@ -425,7 +476,7 @@
                             {% endif %}
                         </span></span>
                     {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="timesheets-next">»</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="timesheets-next">»</button>
                     </div>
                     {% endif %}
                     
@@ -459,15 +510,13 @@
 </div>
 
 <div class="row">
-    <!-- Quiz Management -->
+    <!-- Quiz Management - Updated for new quiz structure -->
     <div class="col-md-6 mb-4">
         <div class="card shadow">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Quiz Management</h5>
                 <div>
                     <a href="{% url 'create_quiz' %}" class="btn btn-sm btn-success">Create Quiz</a>
-
-                    
                 </div>
             </div>
             <div class="card-body">
@@ -477,10 +526,22 @@
                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-1">{{ quiz.title }}</h6>
-                                    <small class="text-muted">{{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions</small>
+                                    <small class="text-muted">
+                                        {{ quiz.course.title }} - {{ quiz.quiz_questions.count }} questions
+                                        {% if quiz.is_published %}
+                                            <span class="badge bg-success">Published</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Draft</span>
+                                        {% endif %}
+                                        {% if quiz.is_placement_test %}
+                                            <span class="badge bg-info">Placement Test</span>
+                                        {% endif %}
+                                    </small>
                                 </div>
-                                <div>
-                                    <a href="{% url 'quiz_results_admin' quiz.id %}" class="btn btn-sm btn-outline-primary">View Results</a>
+                                <div class="btn-group">
+                                    <a href="{% url 'quiz_detail' quiz.id %}" class="btn btn-sm btn-outline-secondary">Details</a>
+                                    <a href="{% url 'edit_quiz_questions' quiz.id %}" class="btn btn-sm btn-outline-primary">Edit Questions</a>
+                                    <a href="{% url 'quiz_analytics' quiz.id %}" class="btn btn-sm btn-outline-info">Analytics</a>
                                 </div>
                             </div>
                         {% endfor %}
@@ -492,7 +553,6 @@
                     <div class="text-center py-4">
                         <p>You haven't created any quizzes yet.</p>
                         <a href="{% url 'create_quiz' %}" class="btn btn-sm btn-success">Create Quiz</a>
-
                     </div>
                 {% endif %}
             </div>
@@ -500,66 +560,67 @@
     </div>
     
     <!-- Student Quiz Results -->
-    <div class="col-md-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent Quiz Submissions</h5>
-                <a href="{% url 'quiz_list' %}" class="btn btn-sm btn-primary">View All Quizzes</a>
-            </div>
-            <div class="card-body">
-                {% if recent_attempts %}
-                    <div class="list-group">
-                        {% for attempt in recent_attempts %}
-                            <div class="list-group-item quiz-attempt-item {% if forloop.counter > 5 %}d-none{% endif %}">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
-                                    <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
-                                        {{ attempt.score }}%
-                                    </span>
-                                </div>
-                                <small class="text-muted">{{ attempt.quiz.title }} - {{ attempt.end_time|date:"M d, Y H:i" }}</small>
+<div class="col-md-6 mb-4">
+    <div class="card shadow">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Quiz Submissions</h5>
+            <a href="{% url 'quiz_list' %}" class="btn btn-sm btn-primary">View All Quizzes</a>
+        </div>
+        <div class="card-body">
+            {% if recent_attempts %}
+                <div class="list-group">
+                    {% for attempt in recent_attempts %}
+                        <div class="list-group-item quiz-attempt-item {% if forloop.counter > 5 %}d-none{% endif %}">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">{{ attempt.user.get_full_name|default:attempt.user.username }}</h6>
+                                <span class="badge bg-{% if attempt.score >= attempt.quiz.passing_score %}success{% else %}danger{% endif %}">
+                                    {{ attempt.score }}%
+                                </span>
+                            </div>
+                            <small class="text-muted">{{ attempt.quiz.title }} - {{ attempt.end_time|date:"M d, Y H:i" }}</small>
+                            <div class="mt-2">
+                                <a href="{% url 'quiz_results' attempt.id %}" class="btn btn-sm btn-outline-secondary">View Results</a>
                                 {% if attempt.has_pending_grading %}
-                                    <div class="mt-2">
-                                        <a href="{% url 'grade_submissions' attempt.quiz.id %}" class="btn btn-sm btn-warning">Grade Submissions</a>
-                                    </div>
+                                    <a href="{% url 'grade_submissions' attempt.quiz.id %}" class="btn btn-sm btn-warning">Grade Submissions</a>
                                 {% endif %}
                             </div>
-                        {% endfor %}
-                    </div>
-                    
-                    {% if recent_attempts|length > 5 %}
-                    <div class="section-paginator" id="quiz-attempts-paginator">
-                        <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-prev" disabled>&laquo;</button>
-                        {% with total=recent_attempts|length %}
-                        <span><span id="quiz-attempts-current-page">1</span> / 
-                        <span id="quiz-attempts-total-pages">
-                            {% if total|divisibleby:5 %}
-                                {{ total|dividedby:5 }}
-                            {% else %}
-                                {{ total|add:4|dividedby:5 }}
-                            {% endif %}
-                        </span></span>
-                    {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-next">»</button>
-                    </div>
-                    {% endif %}
-                {% elif not recent_attempts and assigned_students %}
-                    <div class="text-center py-4">
-                        <p>No quiz submissions yet from your students.</p>
-                        <p class="text-muted">As your students complete quizzes, their submissions will appear here.</p>
-                        {% if recent_quizzes %}
-                            <p>You can check individual quiz results by going to the quiz details.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                {% if recent_attempts|length > 5 %}
+                <div class="section-paginator" id="quiz-attempts-paginator">
+                    <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-prev" disabled>&laquo;</button>
+                    {% with total=recent_attempts|length %}
+                    <span><span id="quiz-attempts-current-page">1</span> / 
+                    <span id="quiz-attempts-total-pages">
+                        {% if total|divisibleby:5 %}
+                            {{ total|dividedby:5 }}
+                        {% else %}
+                            {{ total|add:4|dividedby:5 }}
                         {% endif %}
-                    </div>
-                {% elif not assigned_students %}
-                    <div class="text-center py-4">
-                        <p>No students are currently assigned to you.</p>
-                        <p class="text-muted">Quiz submissions will appear here once you have students assigned.</p>
-                    </div>
+                    </span></span>
+                {% endwith %}
+                    <button class="btn btn-sm btn-outline-secondary" id="quiz-attempts-next">»</button>
+                </div>
                 {% endif %}
-            </div>
+            {% elif not recent_attempts and assigned_students %}
+                <div class="text-center py-4">
+                    <p>No quiz submissions yet from your students.</p>
+                    <p class="text-muted">As your students complete quizzes, their submissions will appear here.</p>
+                    {% if recent_quizzes %}
+                        <p>You can check individual quiz results by going to the quiz details.</p>
+                    {% endif %}
+                </div>
+            {% elif not assigned_students %}
+                <div class="text-center py-4">
+                    <p>No students are currently assigned to you.</p>
+                    <p class="text-muted">Quiz submissions will appear here once you have students assigned.</p>
+                </div>
+            {% endif %}
         </div>
     </div>
+</div>
 </div>
 
 <div class="row">
@@ -609,7 +670,7 @@
                             {% endif %}
                         </span></span>
                     {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="submissions-next">»</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="submissions-next">»</button>
                     </div>
                     {% endif %}
                     
@@ -644,7 +705,10 @@
                                 </div>
                                 <p class="mb-1">Students: {{ event.students.count }}</p>
                                 <div class="mt-2">
-                                    <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                    <div class="btn-group">
+                                        <a href="{% url 'event_detail' event.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        <a href="{% url 'event_update' event.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </div>
                                 </div>
                             </div>
                         {% endfor %}
@@ -663,7 +727,7 @@
                             {% endif %}
                         </span></span>
                     {% endwith %}
-                                            <button class="btn btn-sm btn-outline-secondary" id="events-next">»</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="events-next">»</button>
                     </div>
                     {% endif %}
                     
@@ -688,7 +752,7 @@
     </div>
 </div>
 
-<!-- Quiz Analytics -->
+<!-- Quiz Analytics - Updated with more detailed metrics -->
 <div class="row">
     <div class="col-12 mb-4">
         <div class="card shadow">
@@ -712,6 +776,59 @@
                     <div class="col-md-3 text-center">
                         <h4>{{ quiz_stats.pass_rate|floatformat:1 }}%</h4>
                         <small class="text-muted">Pass Rate</small>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- Question Type Breakdown -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Question Types</h6>
+                        <div class="d-flex justify-content-around">
+                            <div class="text-center">
+                                <h5>{{ question_stats.multiple_choice|default:0 }}</h5>
+                                <small class="text-muted">Multiple Choice</small>
+                            </div>
+                            <div class="text-center">
+                                <h5>{{ question_stats.text|default:0 }}</h5>
+                                <small class="text-muted">Text/Essay</small>
+                            </div>
+                            <div class="text-center">
+                                <h5>{{ question_stats.other|default:0 }}</h5>
+                                <small class="text-muted">Other Types</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Student Performance</h6>
+                        <div class="progress" style="height: 25px;">
+                            {% with advanced=quiz_stats.advanced_count|default:0 intermediate=quiz_stats.intermediate_count|default:0 beginner=quiz_stats.beginner_count|default:0 %}
+                            {% with total=advanced|add:intermediate|add:beginner %}
+                            {% if total > 0 %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                    style="width: {% widthratio advanced total 100 %}%" 
+                                    aria-valuenow="{{ advanced }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                    Advanced ({{ advanced }})
+                                </div>
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                    style="width: {% widthratio intermediate total 100 %}%" 
+                                    aria-valuenow="{{ intermediate }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                    Intermediate ({{ intermediate }})
+                                </div>
+                                <div class="progress-bar bg-info" role="progressbar" 
+                                    style="width: {% widthratio beginner total 100 %}%" 
+                                    aria-valuenow="{{ beginner }}" aria-valuemin="0" aria-valuemax="{{ total }}">
+                                    Beginner ({{ beginner }})
+                                </div>
+                            {% else %}
+                                <div class="progress-bar bg-secondary" role="progressbar" style="width: 100%">
+                                    No data available
+                                </div>
+                            {% endif %}
+                            {% endwith %}
+                            {% endwith %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -748,6 +865,17 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title-{{ timesheet.id }}" class="form-label">Class Title:</label>
+                            <input type="text" class="form-control" id="title-{{ timesheet.id }}" name="title" value="Class with {{ timesheet.student.get_full_name|default:timesheet.student.username }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="meet_link-{{ timesheet.id }}" class="form-label">Google Meet Link:</label>
+                            <input type="text" class="form-control" id="meet_link-{{ timesheet.id }}" name="meet_link" placeholder="https://meet.google.com/xxx-xxxx-xxx">
+                            <div class="form-text">Provide a Google Meet link for the virtual classroom.</div>
                         </div>
                     </form>
                 </div>

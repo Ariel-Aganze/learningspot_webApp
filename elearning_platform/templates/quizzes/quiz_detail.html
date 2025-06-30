@@ -72,8 +72,6 @@
                                         <i class="bi bi-exclamation-triangle-fill text-warning" title="Total points don't match max points"></i>
                                     {% endif %}
                                 </li>
-                                <li><strong>Time Limit:</strong> {{ quiz.time_limit }} minutes</li>
-                                <li><strong>Passing Score:</strong> {{ quiz.passing_score }}%</li>
                                 <li><strong>Created:</strong> {{ quiz.created_at|date:"M d, Y" }}</li>
                                 <li><strong>Last Updated:</strong> {{ quiz.updated_at|date:"M d, Y" }}</li>
                             </ul>

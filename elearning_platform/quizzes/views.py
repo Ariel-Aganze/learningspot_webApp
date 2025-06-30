@@ -413,9 +413,27 @@ def start_quiz(request, quiz_id):
         messages.error(request, "This quiz is not currently available.")
         return redirect('student_quiz_list')
     
-    # Check if student is enrolled in the course
-    student_courses = request.user.course_periods.all().values_list('course', flat=True)
-    if quiz.course.id not in student_courses and not quiz.is_placement_test:
+    # Check if student has already completed this quiz
+    existing_completed_attempts = QuizAttempt.objects.filter(
+        student=request.user, 
+        quiz=quiz
+    ).filter(
+        Q(completed=True) | Q(status='completed')
+    ).exists()
+    
+    if existing_completed_attempts:
+        messages.warning(request, "You have already completed this quiz. Only one attempt is allowed.")
+        return redirect('student_quiz_list')
+    
+    # Check if student is enrolled in the course - Use PaymentProof instead of course_periods
+    is_enrolled = PaymentProof.objects.filter(
+        user=request.user,
+        course=quiz.course,
+        status='approved'
+    ).exists()
+    
+    # Allow access if enrollment exists or it's a placement test
+    if not is_enrolled and not quiz.is_placement_test:
         messages.error(request, "You are not enrolled in this course.")
         return redirect('student_quiz_list')
     
@@ -452,12 +470,12 @@ def take_quiz(request, attempt_id):
         messages.info(request, "You have already completed this quiz.")
         return redirect('quiz_results', attempt_id=attempt.id)
     
-    # Check if the student already has a completed attempt for this quiz
+    # Check if the student already has a completed attempt for this quiz (any attempt, not just this one)
     existing_completed_attempts = QuizAttempt.objects.filter(
         student=request.user, 
         quiz=quiz,
         completed=True
-    ).exists()
+    ).exclude(id=attempt.id).exists()
     
     if existing_completed_attempts:
         messages.warning(request, "You have already completed this quiz. Only one attempt is allowed.")
@@ -627,8 +645,26 @@ def quiz_results(request, attempt_id):
     logger.debug(f"Accessing quiz_results for attempt_id: {attempt_id}")
     
     try:
-        # Get the attempt using both field patterns
-        attempt = get_quiz_attempt(attempt_id, request.user)
+        # Check if the user is a teacher or admin
+        is_teacher_admin = request.user.user_type == 'teacher' or request.user.is_staff or request.user.is_superuser
+        
+        if is_teacher_admin:
+            # Teachers and admins can view any attempt
+            attempt = get_object_or_404(QuizAttempt, id=attempt_id)
+            
+            # Check if teacher is assigned to the student who made this attempt
+            if request.user.user_type == 'teacher' and not request.user.is_staff:
+                student_ids = StudentProfile.objects.filter(
+                    assigned_teacher=request.user
+                ).values_list('user_id', flat=True)
+                
+                if attempt.student.id not in student_ids:
+                    messages.error(request, "You don't have permission to view this student's quiz results.")
+                    return redirect('quiz_list')
+        else:
+            # Regular students can only view their own attempts
+            attempt = get_object_or_404(QuizAttempt, id=attempt_id, student=request.user)
+        
         if not attempt:
             messages.error(request, "Quiz attempt not found.")
             return redirect('student_quiz_list')
@@ -638,7 +674,7 @@ def quiz_results(request, attempt_id):
         
         # If quiz is not completed yet, redirect to continue
         is_completed = attempt.completed or attempt.status == 'completed'
-        if not is_completed:
+        if not is_completed and request.user == attempt.student:
             logger.debug("Attempt not completed, redirecting to take_quiz")
             return redirect('take_quiz', attempt_id=attempt.id)
         
@@ -687,7 +723,7 @@ def quiz_results(request, attempt_id):
                     advanced_percentage = (accuracy_percentage - 75) * 4  # Scale to 100
                     
                 # Update the student's proficiency level in their profile
-                if is_completed:
+                if is_completed and request.user == attempt.student:
                     student_profile = StudentProfile.objects.get(user=request.user)
                     student_profile.proficiency_level = attempt.result  # The result is already 'beginner', 'intermediate', or 'advanced'
                     student_profile.save()
@@ -707,7 +743,8 @@ def quiz_results(request, attempt_id):
             'advanced_percentage': advanced_percentage,
             'points_earned': points_earned,
             'total_possible': total_possible,
-            'is_placement_test': quiz.is_placement_test
+            'is_placement_test': quiz.is_placement_test,
+            'is_teacher_view': is_teacher_admin
         })
     except Exception as e:
         logger.error(f"Error in quiz_results: {str(e)}", exc_info=True)
@@ -725,12 +762,16 @@ def quiz_results(request, attempt_id):
                     'points_earned': 0,
                     'total_possible': 0,
                     'is_placement_test': getattr(attempt, 'quiz', None) and getattr(attempt.quiz, 'is_placement_test', False),
-                    'error_message': f"Could not load all quiz data: {str(e)}"
+                    'error_message': f"Could not load all quiz data: {str(e)}",
+                    'is_teacher_view': is_teacher_admin
                 })
         except Exception as inner_e:
             logger.error(f"Fallback error in quiz_results: {str(inner_e)}", exc_info=True)
             
-        return redirect('student_dashboard')
+        if is_teacher_admin:
+            return redirect('quiz_list')
+        else:
+            return redirect('student_dashboard')
 
 @login_required
 def quiz_review(request, attempt_id):

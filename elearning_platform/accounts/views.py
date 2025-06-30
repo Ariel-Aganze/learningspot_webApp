@@ -48,6 +48,13 @@ import mimetypes
 from django.utils import timezone
 from datetime import datetime
 
+import json
+from django.utils import timezone
+from django.db.models import Q
+from events.models import Event, Timesheet
+from quizzes.models import Quiz, QuizAttempt, QuizAnswer, Question
+from courses.models import CourseMaterial, Course, Assignment, AssignmentSubmission
+
 
 
 def is_admin(user):
@@ -166,12 +173,7 @@ def teacher_dashboard(request):
     """
     Teacher dashboard view with data for confirmed timesheets and course materials
     """
-    import json
-    from django.utils import timezone
-    from django.db.models import Q
-    from events.models import Event, Timesheet
-    from quizzes.models import Quiz, QuizAttempt, QuizAnswer, Question
-    from courses.models import CourseMaterial, Course, Assignment, AssignmentSubmission
+    
     
     # Initialize variables
     assigned_students = []
@@ -274,7 +276,7 @@ def teacher_dashboard(request):
                 ).filter(
                     Q(text_answer__isnull=False) | 
                     Q(file_answer__isnull=False) | 
-                    Q(voice_recording__isnull=False)
+                    Q(voice_answer__isnull=False)  # Updated field name from voice_recording to voice_answer
                 ).exists()
                 attempt.has_pending_grading = pending_grading
             

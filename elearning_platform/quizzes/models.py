@@ -19,47 +19,48 @@ class Quiz(models.Model):
     max_points = models.PositiveIntegerField(default=100, help_text="Maximum points for the quiz")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return self.title
-    
+
+    def get_time_limit(self):
+        """Return 0 to effectively disable quiz-level time limit"""
+        return 0
+
+    def get_total_question_time(self):
+        """Calculate the total time limit from all questions in this quiz (in minutes)"""
+        # Try direct relationship
+        total_seconds = self.questions.aggregate(total=Sum('time_limit'))['total'] or 0
+
+        # If we have quiz_questions relationship, add those too
+        if hasattr(self, 'quiz_questions'):
+            question_ids = self.quiz_questions.values_list('question_id', flat=True)
+            quiz_question_seconds = Question.objects.filter(id__in=question_ids).aggregate(
+                total=Sum('time_limit'))['total'] or 0
+            total_seconds = max(total_seconds, quiz_question_seconds)
+
+        total_minutes = total_seconds // 60
+
+        if (
+            (self.questions.exists() or
+            (hasattr(self, 'quiz_questions') and self.quiz_questions.exists()))
+            and total_minutes < 1
+        ):
+            return 1
+
+        return total_minutes
+
     def get_total_points(self):
         """Calculate the total points from all questions in this quiz"""
-        # Check both direct questions and through quiz_questions
         direct_sum = self.questions.aggregate(total=Sum('points'))['total'] or 0
         through_sum = 0
+
         if hasattr(self, 'quiz_questions'):
             through_sum = Question.objects.filter(
                 quizquestion__quiz=self
             ).aggregate(total=Sum('points'))['total'] or 0
+
         return max(direct_sum, through_sum)
-    
-    def get_question_count(self):
-        """Get the number of questions in the quiz"""
-        # Check both direct questions and through quiz_questions
-        direct_count = self.questions.count()
-        through_count = 0
-        if hasattr(self, 'quiz_questions'):
-            through_count = self.quiz_questions.count()
-        return max(direct_count, through_count)
-    
-    def get_questions(self):
-        """Get all questions for this quiz, checking both relationship patterns"""
-        # First try direct relationship
-        direct_questions = self.questions.all().order_by('order')
-        
-        # If no direct questions, try through QuizQuestion
-        if not direct_questions.exists():
-            return Question.objects.filter(
-                quizquestion__quiz=self
-            ).order_by('quizquestion__order')
-        
-        return direct_questions
-    
-    class Meta:
-        verbose_name = "Quiz"
-        verbose_name_plural = "Quizzes"
-        ordering = ['-created_at']
 
 class Question(models.Model):
     """Model representing a question in a quiz"""

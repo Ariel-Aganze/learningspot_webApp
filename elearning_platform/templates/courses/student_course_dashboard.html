@@ -390,7 +390,7 @@
                                         {% if quiz.description %}
                                             <p class="mb-1">{{ quiz.description }}</p>
                                         {% endif %}
-                                        <small class="text-muted">Time Limit: {{ quiz.time_limit }} minutes</small>
+                                        <small class="text-muted">Time Limit: {{ quiz.get_total_question_time }} minutes</small>
                                         <div class="mt-2">
                                             {% if not attempt %}
                                                 <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-primary view-content"

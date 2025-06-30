@@ -213,7 +213,7 @@
                                             <tr>
                                                 <td>{{ payment.course.title }}</td>
                                                 <td>{{ quiz.description|default:"Determine your proficiency level for this course" }}</td>
-                                                <td>{{ quiz.time_limit }} minutes</td>
+                                                <td>{{ quiz.get_total_question_time }} minutes</td>
                                                 <td>
                                                     <a href="{% url 'take_placement_test' payment.course.id %}" class="btn btn-sm btn-primary">Take Placement Test</a>
                                                 </td>
